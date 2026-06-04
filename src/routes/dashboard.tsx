@@ -1,49 +1,109 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useServerFn } from "@tanstack/react-start";
 import { Sidebar } from "@/components/Sidebar";
 import { MrZero } from "@/components/MrZero";
 import { SpeechBubble, speak } from "@/components/SpeechBubble";
-import { RoadmapCard, generateRoadmap, type Week } from "@/components/RoadmapCard";
-import { Volume2 } from "lucide-react";
+import { RoadmapCard } from "@/components/RoadmapCard";
+import { generateRoadmap, type Roadmap } from "@/lib/roadmap.functions";
+import { Volume2, Zap, Frown, AlertTriangle, RefreshCw } from "lucide-react";
+import type { GoalData } from "@/components/GoalForm";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Project 0" }] }),
   component: Dashboard,
 });
 
+const diffColor: Record<string, string> = {
+  Easy: "bg-emerald-100 text-emerald-700",
+  Medium: "bg-amber-100 text-amber-700",
+  Hard: "bg-rose-100 text-rose-700",
+};
+
 function Dashboard() {
   const navigate = useNavigate();
-  const [goals, setGoals] = useState<{ goal: string; duration: string; hours: string } | null>(null);
-  const [weeks, setWeeks] = useState<Week[]>([]);
+  const regenerate = useServerFn(generateRoadmap);
+  const [goals, setGoals] = useState<GoalData | null>(null);
+  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [msg, setMsg] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
+  const [adapting, setAdapting] = useState(false);
 
   useEffect(() => {
-    const raw = localStorage.getItem("p0_goals");
-    if (!raw) {
+    const rawGoals = localStorage.getItem("p0_goals");
+    const rawRoadmap = localStorage.getItem("p0_roadmap");
+    if (!rawGoals || !rawRoadmap) {
       navigate({ to: "/setup" });
       return;
     }
-    const g = JSON.parse(raw);
+    const g = JSON.parse(rawGoals) as GoalData;
+    const r = JSON.parse(rawRoadmap) as Roadmap;
     setGoals(g);
-    setWeeks(generateRoadmap(g.goal));
-    const welcome = `Here's your roadmap for ${g.goal}. Let's build, one zero at a time!`;
+    setRoadmap(r);
+    const rawDone = localStorage.getItem("p0_completed");
+    if (rawDone) setCompleted(new Set(JSON.parse(rawDone)));
     setTimeout(() => {
+      const welcome = r.summary || `Here's your plan for ${g.goal}. Let's build, one zero at a time!`;
       setMsg(welcome);
       setSpeaking(true);
       speak(welcome);
-      setTimeout(() => setSpeaking(false), 3000);
+      setTimeout(() => setSpeaking(false), 3200);
     }, 400);
   }, [navigate]);
 
+  const toggle = (id: string) => {
+    setCompleted((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem("p0_completed", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const totalMissions = useMemo(
+    () => roadmap?.weeks?.reduce((a, w) => a + w.days.reduce((b, d) => b + d.missions.length, 0), 0) ?? 0,
+    [roadmap],
+  );
+  const completionRate = totalMissions ? Math.round((completed.size / totalMissions) * 100) : 0;
+
   const replay = () => {
     if (!goals) return;
-    const m = `You're aiming for ${goals.goal} in ${goals.duration}, with ${goals.hours} daily. You've got this!`;
+    const m = `You're aiming for ${goals.goal} in ${goals.duration}, ${goals.hours} hours a day. ${completionRate}% done — keep going!`;
     setMsg(m);
     setSpeaking(true);
     speak(m);
     setTimeout(() => setSpeaking(false), 3500);
+  };
+
+  const adapt = async (note: string) => {
+    if (!goals || adapting) return;
+    setAdapting(true);
+    setMsg("Recalculating your roadmap…");
+    speak("Recalculating your roadmap");
+    try {
+      const next = await regenerate({
+        data: {
+          ...goals,
+          adaptation: {
+            note,
+            completed: [...completed],
+            missedDays: note.toLowerCase().includes("missed") ? 3 : 0,
+          },
+        },
+      });
+      setRoadmap(next);
+      localStorage.setItem("p0_roadmap", JSON.stringify(next));
+      setMsg(next.summary || "Updated! Your plan has been rebalanced.");
+      speak("Your plan has been rebalanced.");
+    } catch (e) {
+      console.error(e);
+      setMsg("Couldn't rebalance right now. Try again in a moment.");
+    } finally {
+      setAdapting(false);
+    }
   };
 
   return (
@@ -57,7 +117,7 @@ function Dashboard() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-10 flex flex-wrap items-start justify-between gap-6"
+            className="mb-8 flex flex-wrap items-start justify-between gap-6"
           >
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
@@ -65,7 +125,7 @@ function Dashboard() {
               </div>
               <h1 className="mt-2 text-4xl font-bold tracking-tight">{goals?.goal}</h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                {goals?.duration} · {goals?.hours} daily
+                {goals?.duration} · {goals?.hours}h/day · {goals?.skillLevel} · {roadmap?.totalHours ?? 0}h planned
               </p>
             </div>
             <button
@@ -77,21 +137,96 @@ function Dashboard() {
             </button>
           </motion.div>
 
-          <div className="mb-10 flex items-end gap-6 rounded-[2rem] glass-card p-6">
-            <MrZero size={160} speaking={speaking} />
-            <div className="flex-1 pb-2">
+          <div className="mb-8 flex flex-col items-stretch gap-6 rounded-[2rem] glass-card p-6 sm:flex-row sm:items-end">
+            <MrZero size={140} speaking={speaking} />
+            <div className="flex-1 space-y-4 pb-1">
               <SpeechBubble message={msg ?? "Ready when you are."} side="left" />
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
+                  <span className="text-foreground/70">Progress</span>
+                  <span className="text-primary">{completionRate}% · {completed.size}/{totalMissions} missions</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-primary/10">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${completionRate}%` }}
+                    transition={{ type: "spring", stiffness: 80, damping: 20 }}
+                    className="h-full rounded-full bg-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <AdaptButton icon={Zap} label="I finished early" onClick={() => adapt("User finished planned tasks early — accelerate and add stretch goals.")} disabled={adapting} />
+                <AdaptButton icon={Frown} label="I missed a few days" onClick={() => adapt("User missed about 3 days — rebalance remaining time without overload.")} disabled={adapting} />
+                <AdaptButton icon={AlertTriangle} label="This topic is hard" onClick={() => adapt("User finds the current focus topic difficult — allocate more time, slow pace, add foundational practice.")} disabled={adapting} />
+                <AdaptButton icon={RefreshCw} label="Rebuild plan" onClick={() => adapt("Regenerate from scratch with the same profile but a fresh perspective.")} disabled={adapting} />
+              </div>
             </div>
           </div>
 
-          <h2 className="mb-5 text-2xl font-bold tracking-tight">Your roadmap</h2>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {weeks.map((w, i) => (
-              <RoadmapCard key={w.week} week={w} index={i} />
+          {roadmap?.topics && roadmap.topics.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-foreground/60">
+                Topic effort allocation
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {roadmap.topics.map((t) => (
+                  <div key={t.name} className="glass-card flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${diffColor[t.difficulty] ?? ""}`}>
+                      {t.difficulty}
+                    </span>
+                    <span className="font-semibold">{t.name}</span>
+                    <span className="text-muted-foreground">· {t.hours}h</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <h2 className="mb-5 text-2xl font-bold tracking-tight">Your weekly roadmap</h2>
+          <div className="grid gap-5 lg:grid-cols-2">
+            {roadmap?.weeks?.map((w, i) => (
+              <RoadmapCard key={w.week} week={w} index={i} completed={completed} onToggle={toggle} />
             ))}
           </div>
+
+          {roadmap?.encouragement && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-10 text-center text-sm italic text-primary/80"
+            >
+              “{roadmap.encouragement}”
+            </motion.p>
+          )}
         </div>
       </main>
     </div>
+  );
+}
+
+function AdaptButton({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+}: {
+  icon: typeof Zap;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center gap-1.5 rounded-full border border-border bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-foreground/80 transition-all hover:border-primary hover:text-primary disabled:opacity-50"
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </button>
   );
 }
