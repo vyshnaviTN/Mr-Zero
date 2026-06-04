@@ -31,6 +31,46 @@ export function SpeechBubble({ message, side = "left" }: SpeechBubbleProps) {
   );
 }
 
+// Persistent voice selection — picked once, reused forever.
+let chosenVoice: SpeechSynthesisVoice | null = null;
+let voiceReady = false;
+
+function pickVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const storedName = localStorage.getItem("p0_voice");
+  if (storedName) {
+    const stored = voices.find((v) => v.name === storedName);
+    if (stored) return stored;
+  }
+
+  const preferred =
+    voices.find((v) => /samantha/i.test(v.name)) ||
+    voices.find((v) => /google.*us.*english/i.test(v.name)) ||
+    voices.find((v) => /zira|jenny|aria/i.test(v.name)) ||
+    voices.find((v) => v.lang === "en-US" && /female/i.test(v.name)) ||
+    voices.find((v) => v.lang === "en-US") ||
+    voices.find((v) => v.lang.startsWith("en")) ||
+    voices[0];
+
+  if (preferred) localStorage.setItem("p0_voice", preferred.name);
+  return preferred ?? null;
+}
+
+function ensureVoice(): SpeechSynthesisVoice | null {
+  if (chosenVoice) return chosenVoice;
+  chosenVoice = pickVoice();
+  if (!chosenVoice && !voiceReady && typeof window !== "undefined" && window.speechSynthesis) {
+    voiceReady = true;
+    window.speechSynthesis.onvoiceschanged = () => {
+      chosenVoice = pickVoice();
+    };
+  }
+  return chosenVoice;
+}
+
 export function speak(text: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   try {
@@ -39,9 +79,22 @@ export function speak(text: string) {
     u.rate = 1;
     u.pitch = 1.15;
     u.lang = "en-US";
-    const voices = window.speechSynthesis.getVoices();
-    const friendly = voices.find((v) => /female|samantha|zira|google us/i.test(v.name));
-    if (friendly) u.voice = friendly;
+    const v = ensureVoice();
+    if (v) u.voice = v;
     window.speechSynthesis.speak(u);
   } catch {}
+}
+
+export async function speakSequence(lines: string[], gap = 350) {
+  for (const line of lines) {
+    speak(line);
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (!window.speechSynthesis.speaking) resolve();
+        else setTimeout(check, 120);
+      };
+      setTimeout(check, 200);
+    });
+    await new Promise((r) => setTimeout(r, gap));
+  }
 }
