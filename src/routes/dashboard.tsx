@@ -138,15 +138,22 @@ function Dashboard() {
             </button>
           </motion.div>
 
-          <div className="mb-8 flex flex-col items-stretch gap-6 rounded-[2rem] glass-card p-6 sm:flex-row sm:items-end">
-            <MrZero size={140} speaking={speaking} />
-            <div className="flex-1 space-y-4 pb-1">
+          <div className="mb-10 grid gap-8 lg:grid-cols-[auto_1fr] lg:items-center">
+            <HeroZero speaking={speaking} progress={completionRate} onSay={(t) => { setMsg(t); setSpeaking(true); speak(t); setTimeout(() => setSpeaking(false), 2400); }} />
+
+            <div className="space-y-4">
               <SpeechBubble message={msg ?? "Ready when you are."} side="left" />
+
+              <div className="grid grid-cols-3 gap-3">
+                <Stat label="Progress" value={`${completionRate}%`} />
+                <Stat label="Missions done" value={`${completed.size}/${totalMissions}`} />
+                <Stat label="Streak" value={<span className="inline-flex items-center gap-1"><Flame className="h-4 w-4 text-primary" />1 day</span>} />
+              </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-foreground/70">Progress</span>
-                  <span className="text-primary">{completionRate}% · {completed.size}/{totalMissions} missions</span>
+                  <span className="text-foreground/70">Roadmap progress</span>
+                  <span className="text-primary">{completionRate}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-primary/10">
                   <motion.div
