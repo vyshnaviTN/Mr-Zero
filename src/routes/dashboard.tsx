@@ -6,8 +6,9 @@ import { Sidebar } from "@/components/Sidebar";
 import { MrZero } from "@/components/MrZero";
 import { SpeechBubble, speak } from "@/components/SpeechBubble";
 import { RoadmapCard } from "@/components/RoadmapCard";
+import { MrZeroChat } from "@/components/MrZeroChat";
 import { generateRoadmap, type Roadmap } from "@/lib/roadmap.functions";
-import { Volume2, Zap, Frown, AlertTriangle, RefreshCw } from "lucide-react";
+import { Volume2, Zap, Frown, AlertTriangle, RefreshCw, Flame } from "lucide-react";
 import type { GoalData } from "@/components/GoalForm";
 
 export const Route = createFileRoute("/dashboard")({
@@ -35,7 +36,7 @@ function Dashboard() {
     const rawGoals = localStorage.getItem("p0_goals");
     const rawRoadmap = localStorage.getItem("p0_roadmap");
     if (!rawGoals || !rawRoadmap) {
-      navigate({ to: "/setup" });
+      navigate({ to: rawGoals ? "/generating" : "/discovery" });
       return;
     }
     const g = JSON.parse(rawGoals) as GoalData;
