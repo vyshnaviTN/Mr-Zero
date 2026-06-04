@@ -6,8 +6,9 @@ import { Sidebar } from "@/components/Sidebar";
 import { MrZero } from "@/components/MrZero";
 import { SpeechBubble, speak } from "@/components/SpeechBubble";
 import { RoadmapCard } from "@/components/RoadmapCard";
+import { MrZeroChat } from "@/components/MrZeroChat";
 import { generateRoadmap, type Roadmap } from "@/lib/roadmap.functions";
-import { Volume2, Zap, Frown, AlertTriangle, RefreshCw } from "lucide-react";
+import { Volume2, Zap, Frown, AlertTriangle, RefreshCw, Flame } from "lucide-react";
 import type { GoalData } from "@/components/GoalForm";
 
 export const Route = createFileRoute("/dashboard")({
@@ -35,7 +36,7 @@ function Dashboard() {
     const rawGoals = localStorage.getItem("p0_goals");
     const rawRoadmap = localStorage.getItem("p0_roadmap");
     if (!rawGoals || !rawRoadmap) {
-      navigate({ to: "/setup" });
+      navigate({ to: rawGoals ? "/generating" : "/discovery" });
       return;
     }
     const g = JSON.parse(rawGoals) as GoalData;
@@ -137,15 +138,22 @@ function Dashboard() {
             </button>
           </motion.div>
 
-          <div className="mb-8 flex flex-col items-stretch gap-6 rounded-[2rem] glass-card p-6 sm:flex-row sm:items-end">
-            <MrZero size={140} speaking={speaking} />
-            <div className="flex-1 space-y-4 pb-1">
+          <div className="mb-10 grid gap-8 lg:grid-cols-[auto_1fr] lg:items-center">
+            <HeroZero speaking={speaking} progress={completionRate} onSay={(t) => { setMsg(t); setSpeaking(true); speak(t); setTimeout(() => setSpeaking(false), 2400); }} />
+
+            <div className="space-y-4">
               <SpeechBubble message={msg ?? "Ready when you are."} side="left" />
+
+              <div className="grid grid-cols-3 gap-3">
+                <Stat label="Progress" value={`${completionRate}%`} />
+                <Stat label="Missions done" value={`${completed.size}/${totalMissions}`} />
+                <Stat label="Streak" value={<span className="inline-flex items-center gap-1"><Flame className="h-4 w-4 text-primary" />1 day</span>} />
+              </div>
 
               <div>
                 <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
-                  <span className="text-foreground/70">Progress</span>
-                  <span className="text-primary">{completionRate}% · {completed.size}/{totalMissions} missions</span>
+                  <span className="text-foreground/70">Roadmap progress</span>
+                  <span className="text-primary">{completionRate}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-primary/10">
                   <motion.div
@@ -204,6 +212,70 @@ function Dashboard() {
           )}
         </div>
       </main>
+      <MrZeroChat />
+    </div>
+  );
+}
+
+const HOVER_MESSAGES = [
+  "You only need one task to move forward.",
+  "Builders are made through consistency.",
+  "Today's progress becomes tomorrow's confidence.",
+  "Small reps. Every single day. That's the formula.",
+  "Done beats perfect. Always.",
+  "The roadmap waits. You don't have to.",
+];
+
+function HeroZero({
+  speaking,
+  progress,
+  onSay,
+}: {
+  speaking: boolean;
+  progress: number;
+  onSay: (t: string) => void;
+}) {
+  const hover = () => {
+    const m = HOVER_MESSAGES[Math.floor(Math.random() * HOVER_MESSAGES.length)];
+    onSay(m);
+  };
+  const size = 280;
+  const r = size / 2 - 8;
+  const c = 2 * Math.PI * r;
+  return (
+    <div
+      onMouseEnter={hover}
+      className="relative mx-auto"
+      style={{ width: size, height: size }}
+    >
+      <svg className="absolute inset-0 -rotate-90" width={size} height={size}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#FFC1D6" strokeWidth="6" fill="none" />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="#FF4D94"
+          strokeWidth="6"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={c}
+          initial={{ strokeDashoffset: c }}
+          animate={{ strokeDashoffset: c - (c * progress) / 100 }}
+          transition={{ type: "spring", stiffness: 60, damping: 20 }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <MrZero size={size - 60} speaking={speaking} />
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="glass-card rounded-2xl px-4 py-3">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-bold text-foreground">{value}</div>
     </div>
   );
 }

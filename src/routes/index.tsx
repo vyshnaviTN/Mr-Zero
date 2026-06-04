@@ -15,9 +15,9 @@ export const Route = createFileRoute("/")({
 });
 
 const intro = [
-  "Hello! I'm Mr. Zero.",
+  "Hello.",
+  "I'm Mr. Zero.",
   "Every builder starts from zero.",
-  "Sign in and let's begin your journey.",
 ];
 
 function Login() {
@@ -46,10 +46,10 @@ function Login() {
     e.preventDefault();
     if (!email || !pw) return;
     setWaving(true);
-    setMsg("Welcome aboard! Let's set things up.");
-    speak("Welcome aboard! Let's set things up.");
+    setMsg("Welcome aboard!");
+    speak("Welcome aboard!");
     localStorage.setItem("p0_user", email);
-    setTimeout(() => navigate({ to: "/setup" }), 1100);
+    setTimeout(() => navigate({ to: "/welcome" }), 1100);
   };
 
   return (
