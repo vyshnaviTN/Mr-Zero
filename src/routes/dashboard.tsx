@@ -212,6 +212,70 @@ function Dashboard() {
           )}
         </div>
       </main>
+      <MrZeroChat />
+    </div>
+  );
+}
+
+const HOVER_MESSAGES = [
+  "You only need one task to move forward.",
+  "Builders are made through consistency.",
+  "Today's progress becomes tomorrow's confidence.",
+  "Small reps. Every single day. That's the formula.",
+  "Done beats perfect. Always.",
+  "The roadmap waits. You don't have to.",
+];
+
+function HeroZero({
+  speaking,
+  progress,
+  onSay,
+}: {
+  speaking: boolean;
+  progress: number;
+  onSay: (t: string) => void;
+}) {
+  const hover = () => {
+    const m = HOVER_MESSAGES[Math.floor(Math.random() * HOVER_MESSAGES.length)];
+    onSay(m);
+  };
+  const size = 280;
+  const r = size / 2 - 8;
+  const c = 2 * Math.PI * r;
+  return (
+    <div
+      onMouseEnter={hover}
+      className="relative mx-auto"
+      style={{ width: size, height: size }}
+    >
+      <svg className="absolute inset-0 -rotate-90" width={size} height={size}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="hsl(var(--primary) / 0.12)" strokeWidth="6" fill="none" />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="hsl(var(--primary))"
+          strokeWidth="6"
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={c}
+          initial={{ strokeDashoffset: c }}
+          animate={{ strokeDashoffset: c - (c * progress) / 100 }}
+          transition={{ type: "spring", stiffness: 60, damping: 20 }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <MrZero size={size - 60} speaking={speaking} />
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="glass-card rounded-2xl px-4 py-3">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-bold text-foreground">{value}</div>
     </div>
   );
 }
