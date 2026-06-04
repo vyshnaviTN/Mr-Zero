@@ -249,12 +249,12 @@ function HeroZero({
       style={{ width: size, height: size }}
     >
       <svg className="absolute inset-0 -rotate-90" width={size} height={size}>
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="hsl(var(--primary) / 0.12)" strokeWidth="6" fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#FFC1D6" strokeWidth="6" fill="none" />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="hsl(var(--primary))"
+          stroke="#FF4D94"
           strokeWidth="6"
           strokeLinecap="round"
           fill="none"
