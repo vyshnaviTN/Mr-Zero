@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as SetupRouteImport } from './routes/setup'
 import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as DiscoveryRouteImport } from './routes/discovery'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -19,11 +18,6 @@ import { Route as IndexRouteImport } from './routes/index'
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetupRoute = SetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GeneratingRoute = GeneratingRouteImport.update({
@@ -52,7 +46,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/discovery': typeof DiscoveryRoute
   '/generating': typeof GeneratingRoute
-  '/setup': typeof SetupRoute
   '/welcome': typeof WelcomeRoute
 }
 export interface FileRoutesByTo {
@@ -60,7 +53,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/discovery': typeof DiscoveryRoute
   '/generating': typeof GeneratingRoute
-  '/setup': typeof SetupRoute
   '/welcome': typeof WelcomeRoute
 }
 export interface FileRoutesById {
@@ -69,27 +61,19 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/discovery': typeof DiscoveryRoute
   '/generating': typeof GeneratingRoute
-  '/setup': typeof SetupRoute
   '/welcome': typeof WelcomeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/dashboard'
-    | '/discovery'
-    | '/generating'
-    | '/setup'
-    | '/welcome'
+  fullPaths: '/' | '/dashboard' | '/discovery' | '/generating' | '/welcome'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/discovery' | '/generating' | '/setup' | '/welcome'
+  to: '/' | '/dashboard' | '/discovery' | '/generating' | '/welcome'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/discovery'
     | '/generating'
-    | '/setup'
     | '/welcome'
   fileRoutesById: FileRoutesById
 }
@@ -98,7 +82,6 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DiscoveryRoute: typeof DiscoveryRoute
   GeneratingRoute: typeof GeneratingRoute
-  SetupRoute: typeof SetupRoute
   WelcomeRoute: typeof WelcomeRoute
 }
 
@@ -109,13 +92,6 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/generating': {
@@ -154,7 +130,6 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DiscoveryRoute: DiscoveryRoute,
   GeneratingRoute: GeneratingRoute,
-  SetupRoute: SetupRoute,
   WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport
