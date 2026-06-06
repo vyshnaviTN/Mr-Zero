@@ -9,10 +9,24 @@ const profileSchema = z.object({
   experience: z.string().max(1000).optional().default(""),
   weakAreas: z.string().max(1000).optional().default(""),
   learningStyle: z.string().max(200).optional().default("Mixed"),
+
+  // Placement-prep extended profile (optional — only present when branch was taken)
+  target: z.string().max(200).optional(),
+  dsaLevel: z.string().max(100).optional(),
+  leetcode: z.string().max(100).optional(),
+  projects: z.array(z.string().max(200)).max(20).optional(),
+  communication: z.string().max(100).optional(),
+  hasResume: z.string().max(20).optional(),
+  aptitude: z.string().max(100).optional(),
+  weakSkills: z.array(z.string().max(200)).max(20).optional(),
+
+  // Up to 3 daily focus pillars selected by the user
+  pillars: z.array(z.string().max(100)).max(3).optional(),
+
   adaptation: z
     .object({
       note: z.string().max(500),
-      completed: z.array(z.string()).max(200).optional().default([]),
+      completed: z.array(z.string()).max(500).optional().default([]),
       missedDays: z.number().int().min(0).max(365).optional().default(0),
     })
     .optional(),
@@ -40,6 +54,8 @@ export interface TopicEffort {
   name: string;
   difficulty: "Easy" | "Medium" | "Hard";
   hours: number;
+  percent: number; // % of total time
+  reason: string;  // why this allocation
 }
 export interface Roadmap {
   summary: string;
@@ -49,24 +65,30 @@ export interface Roadmap {
   encouragement: string;
 }
 
-const SYSTEM = `You are Mr. Zero, a planning engine that builds *dynamic*, personalized learning roadmaps.
+const SYSTEM = `You are Mr. Zero, a planning engine that builds *dynamic*, weakness-weighted, personalized learning roadmaps.
 
 HARD RULES:
-- Never use a predefined or generic template. Decompose the user's specific goal into the sub-skills it actually requires.
+- Never use a predefined template. Decompose the user's specific goal into the sub-skills it actually requires.
 - Identify prerequisites and order topics by dependency.
-- Classify each topic difficulty (Easy | Medium | Hard) and allocate hours proportionally — harder topics get more time.
-- Total allocated hours must roughly equal duration_days * daily_hours. Do not overload.
-- Build weekly themes and concrete DAILY missions. Each mission must be small, measurable, action-verb-led (e.g. "Watch ES6 arrow functions lesson", "Solve 5 array problems", "Build a tip calculator"). Never vague ("Study X").
+- Classify each topic difficulty (Easy | Medium | Hard).
+- TIME ALLOCATION IS NOT EQUAL. It is weighted by WEAKNESS. Strong areas get less time, weak areas get more time.
+  Example for placement prep: if DSA is weak, Communication is average, Projects are strong, Resume not created, Interview is weak:
+    DSA 45% / Interview 20% / Communication 15% / Resume 10% / Projects 10%.
+  Generate the distribution dynamically from the user's actual profile — do not copy that example.
+- Total allocated hours must roughly equal duration_days * daily_hours. Each topic must include both "hours" and "percent".
+- For each topic include a short "reason" explaining WHY it got that share (e.g. "DSA marked weak + 0-25 LeetCode solved").
+- Build weekly themes and concrete DAILY missions. Each mission must be small, measurable, action-verb-led (e.g. "Solve 5 array problems", "Record a 60s self-introduction", "Draft resume bullet for project X"). Never vague.
 - Mix mission types: learn, practice, project, revision, assessment.
-- Respect the user's skill level, experience, weak areas, and learning style.
-- If an "adaptation" note is present (finished early / missed days / topic is hard), REBALANCE the plan accordingly.
+- If the user picked focus pillars (max 3), make those the spine of every day — each day's missions should advance those pillars.
+- Respect skill level, experience, projects already in progress, weak areas, and learning style.
+- If an "adaptation" note is present (finished early / missed days / topic is hard / priority changed), REBALANCE the remaining plan accordingly without forcing a full restart.
 - Prioritize consistency over intensity. Realistic > perfect.
 
 Respond with ONLY a JSON object, no prose, no markdown fences, matching:
 {
   "summary": string,
   "totalHours": number,
-  "topics": [{ "name": string, "difficulty": "Easy"|"Medium"|"Hard", "hours": number }],
+  "topics": [{ "name": string, "difficulty": "Easy"|"Medium"|"Hard", "hours": number, "percent": number, "reason": string }],
   "weeks": [{
     "week": number,
     "theme": string,
@@ -82,7 +104,23 @@ export const generateRoadmap = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
 
-    const userPrompt = `Build a dynamic roadmap for this learner.
+    const placementBlock = data.target
+      ? `\nPlacement profile:
+- Target: ${data.target}
+- DSA level: ${data.dsaLevel ?? "unknown"}
+- LeetCode solved: ${data.leetcode ?? "unknown"}
+- Active projects: ${(data.projects ?? []).join(", ") || "none"}
+- Communication: ${data.communication ?? "unknown"}
+- Has resume: ${data.hasResume ?? "unknown"}
+- Aptitude comfort: ${data.aptitude ?? "unknown"}
+- Self-reported weak skills: ${(data.weakSkills ?? []).join(", ") || "none"}`
+      : "";
+
+    const pillarBlock = data.pillars && data.pillars.length
+      ? `\nDaily focus pillars (must drive every day's missions): ${data.pillars.join(" · ")}`
+      : "";
+
+    const userPrompt = `Build a dynamic, weakness-weighted roadmap for this learner.
 
 Goal: ${data.goal}
 Duration: ${data.duration}
@@ -90,18 +128,19 @@ Daily hours available: ${data.hours}
 Current skill level: ${data.skillLevel}
 Existing experience: ${data.experience || "(none provided)"}
 Weak areas: ${data.weakAreas || "(none provided)"}
-Preferred learning style: ${data.learningStyle}
+Preferred learning style: ${data.learningStyle}${placementBlock}${pillarBlock}
 ${
   data.adaptation
-    ? `\nADAPTATION REQUEST: ${data.adaptation.note}\nCompleted so far: ${data.adaptation.completed?.join(", ") || "none"}\nMissed days: ${data.adaptation.missedDays ?? 0}\nRebalance the remaining plan.`
+    ? `\nADAPTATION REQUEST: ${data.adaptation.note}\nCompleted so far: ${data.adaptation.completed?.join(", ") || "none"}\nMissed days: ${data.adaptation.missedDays ?? 0}\nRebalance the REMAINING plan — never force a restart.`
     : ""
 }
 
 Steps you must perform internally:
-1. Decompose the goal into required sub-skills (dynamic, not a template).
+1. Decompose the goal into required sub-skills.
 2. Order them by prerequisites.
-3. Score difficulty and distribute total hours = duration * daily hours.
-4. Produce weekly themes + concrete daily missions.
+3. WEIGHT time by weakness (strong areas get less, weak areas get more). Output explicit "percent" and "reason" per topic.
+4. Total hours ≈ duration_in_days * daily_hours.
+5. Make daily missions revolve around the user's chosen pillars when provided.
 Keep the plan realistic and achievable.`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

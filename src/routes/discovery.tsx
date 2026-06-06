@@ -10,49 +10,179 @@ export const Route = createFileRoute("/discovery")({
   component: Discovery,
 });
 
-type Field = keyof GoalData;
+type FieldKey = keyof GoalData;
+
+type StepKind = "text" | "number" | "chips" | "multi" | "pillars";
 
 interface Step {
-  field: Field;
+  field: FieldKey;
   question: string;
-  placeholder: string;
+  placeholder?: string;
   suggestions?: string[];
-  type?: "text" | "chips" | "number";
+  kind: StepKind;
+  max?: number; // for multi
 }
 
-const steps: Step[] = [
+const BASE: Step[] = [
   {
     field: "goal",
     question: "First — what is your goal?",
     placeholder: "e.g. Crack product-based placements",
-    suggestions: ["Placement Preparation", "Learn AI", "Constitutional Law", "Learn Frontend Development"],
+    suggestions: [
+      "Placement Preparation",
+      "Learn AI",
+      "Constitutional Law",
+      "Learn Frontend Development",
+    ],
+    kind: "chips",
   },
   {
     field: "duration",
     question: "How much time do you have?",
-    placeholder: "e.g. 60 days",
-    suggestions: ["30 Days", "60 Days", "90 Days"],
-    type: "chips",
+    placeholder: "60 Days",
+    suggestions: ["30 Days", "60 Days", "90 Days", "120 Days"],
+    kind: "chips",
   },
   {
     field: "hours",
     question: "How many hours can you dedicate daily?",
-    placeholder: "e.g. 4",
-    type: "number",
+    placeholder: "4",
+    suggestions: ["1", "2", "3", "4", "6"],
+    kind: "number",
   },
+];
+
+const PLACEMENT_STEPS: Step[] = [
+  {
+    field: "target",
+    question: "What is your target?",
+    suggestions: [
+      "Product Based Companies",
+      "Service Based Companies",
+      "FAANG",
+      "Startups",
+      "Any Placement",
+    ],
+    kind: "chips",
+  },
+  {
+    field: "dsaLevel",
+    question: "Rate your DSA level.",
+    suggestions: ["Beginner", "Intermediate", "Advanced"],
+    kind: "chips",
+  },
+  {
+    field: "leetcode",
+    question: "How many LeetCode problems have you solved?",
+    suggestions: ["0-25", "25-100", "100-300", "300+"],
+    kind: "chips",
+  },
+  {
+    field: "projects",
+    question: "What projects are you working on? (pick all that apply)",
+    suggestions: [
+      "Smart Cane",
+      "Portfolio Website",
+      "AI Chatbot",
+      "Krishi Sakhi",
+      "No Projects Yet",
+    ],
+    kind: "multi",
+    max: 6,
+  },
+  {
+    field: "communication",
+    question: "Rate your communication skills.",
+    suggestions: ["Poor", "Average", "Good", "Excellent"],
+    kind: "chips",
+  },
+  {
+    field: "hasResume",
+    question: "Do you already have a resume?",
+    suggestions: ["Yes", "No"],
+    kind: "chips",
+  },
+  {
+    field: "aptitude",
+    question: "How comfortable are you with aptitude?",
+    suggestions: ["Poor", "Average", "Good"],
+    kind: "chips",
+  },
+  {
+    field: "weakSkills",
+    question: "Which skills need the most improvement? (pick all that apply)",
+    suggestions: [
+      "DSA",
+      "Communication",
+      "Projects",
+      "Resume",
+      "Interview Preparation",
+      "Aptitude",
+    ],
+    kind: "multi",
+    max: 6,
+  },
+];
+
+const GENERIC_STEPS: Step[] = [
   {
     field: "skillLevel",
     question: "What is your current level?",
-    placeholder: "Beginner / Intermediate / Advanced",
     suggestions: ["Beginner", "Intermediate", "Advanced"],
-    type: "chips",
+    kind: "chips",
+  },
+  {
+    field: "experience",
+    question: "Any existing experience I should know about?",
+    placeholder: "e.g. built 2 small projects, took an intro course — or 'none'",
+    kind: "text",
   },
   {
     field: "weakAreas",
     question: "Any weak areas I should plan around?",
-    placeholder: "e.g. Dynamic programming, system design — or 'none'",
+    placeholder: "e.g. theory-heavy topics, math — or 'none'",
+    kind: "text",
   },
 ];
+
+const FINAL_PILLARS: Step = {
+  field: "pillars",
+  question: "Pick up to 3 daily focus pillars. These become your daily ritual.",
+  kind: "pillars",
+  max: 3,
+};
+
+const isPlacementGoal = (g: string) =>
+  /placement|interview|faang|company/i.test(g);
+
+function buildSteps(data: Partial<GoalData>): Step[] {
+  const out = [...BASE];
+  if (data.goal) {
+    if (isPlacementGoal(data.goal)) {
+      out.push(...PLACEMENT_STEPS);
+    } else {
+      out.push(...GENERIC_STEPS);
+    }
+    out.push({ ...FINAL_PILLARS, suggestions: defaultPillars(data) });
+  }
+  return out;
+}
+
+function defaultPillars(data: Partial<GoalData>): string[] {
+  if (data.goal && isPlacementGoal(data.goal)) {
+    return [
+      "DSA",
+      "Communication",
+      "Interview Preparation",
+      "Projects",
+      "Resume",
+      "Aptitude",
+      "System Design",
+    ];
+  }
+  // Generic suggested pillars
+  return ["Learn", "Practice", "Build", "Revise", "Reflect"];
+}
 
 interface ChatMsg {
   from: "zero" | "user";
@@ -70,13 +200,18 @@ function Discovery() {
     experience: "",
     weakAreas: "",
     learningStyle: "Mixed",
+    projects: [],
+    weakSkills: [],
+    pillars: [],
   });
   const [input, setInput] = useState("");
+  const [multiSel, setMultiSel] = useState<string[]>([]);
   const [speaking, setSpeaking] = useState(false);
   const [history, setHistory] = useState<ChatMsg[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
   const initRef = useRef(false);
 
+  const steps = useMemo(() => buildSteps(data), [data]);
   const current = steps[step];
   const done = step >= steps.length;
 
@@ -94,40 +229,68 @@ function Discovery() {
     }
     if (initRef.current) return;
     initRef.current = true;
-    setTimeout(() => ask(steps[0].question), 400);
+    setTimeout(() => ask(BASE[0].question), 400);
   }, [navigate]);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [history]);
 
-  const submit = (value: string) => {
-    const v = value.trim();
-    if (!v) return;
-    setHistory((h) => [...h, { from: "user", text: v }]);
+  const advance = (nextData: GoalData, displayValue: string) => {
+    setHistory((h) => [...h, { from: "user", text: displayValue }]);
     setInput("");
-    const nextData = { ...data, [current.field]: v };
+    setMultiSel([]);
     setData(nextData);
-
+    const nextSteps = buildSteps(nextData);
     const nextStep = step + 1;
-    if (nextStep >= steps.length) {
+
+    if (nextStep >= nextSteps.length) {
       setStep(nextStep);
       setTimeout(() => {
-        ask("Got everything I need. Let me build your roadmap.");
+        ask("Perfect. Let me design a roadmap weighted to your weak spots.");
         setTimeout(() => {
           localStorage.setItem("p0_goals", JSON.stringify(nextData));
+          localStorage.setItem(
+            "p0_pillars",
+            JSON.stringify(nextData.pillars ?? []),
+          );
           navigate({ to: "/generating" });
         }, 1800);
       }, 500);
     } else {
       setTimeout(() => {
         setStep(nextStep);
-        ask(steps[nextStep].question);
+        ask(nextSteps[nextStep].question);
       }, 600);
     }
   };
 
-  const progress = useMemo(() => Math.round((step / steps.length) * 100), [step]);
+  const submitSingle = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    const nextData = { ...data, [current.field]: v };
+    advance(nextData as GoalData, v);
+  };
+
+  const submitMulti = () => {
+    if (multiSel.length === 0) return;
+    const nextData = { ...data, [current.field]: multiSel };
+    advance(nextData as GoalData, multiSel.join(", "));
+  };
+
+  const toggleMulti = (s: string) => {
+    setMultiSel((prev) => {
+      if (prev.includes(s)) return prev.filter((x) => x !== s);
+      const max = current?.max ?? 99;
+      if (prev.length >= max) return prev;
+      return [...prev, s];
+    });
+  };
+
+  const progress = useMemo(
+    () => Math.round((step / Math.max(steps.length, 1)) * 100),
+    [step, steps.length],
+  );
 
   return (
     <div className="relative flex min-h-screen overflow-hidden">
@@ -143,18 +306,24 @@ function Discovery() {
             <span className="text-primary">{progress}%</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-primary/10">
-            <motion.div animate={{ width: `${progress}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} className="h-full rounded-full bg-primary" />
+            <motion.div
+              animate={{ width: `${progress}%` }}
+              transition={{ type: "spring", stiffness: 120, damping: 20 }}
+              className="h-full rounded-full bg-primary"
+            />
           </div>
         </div>
       </div>
 
       {/* Chat panel */}
       <div className="relative flex flex-1 flex-col px-6 py-8 lg:px-14">
-        <div className="mb-4 lg:hidden flex justify-center">
+        <div className="mb-4 flex justify-center lg:hidden">
           <MrZero size={140} speaking={speaking} />
         </div>
 
-        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Discovery</div>
+        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
+          Discovery
+        </div>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Tell me your mission</h1>
 
         <div ref={scroller} className="my-6 flex-1 space-y-3 overflow-y-auto pr-2">
@@ -180,47 +349,95 @@ function Discovery() {
           </AnimatePresence>
         </div>
 
-        {!done && (
+        {!done && current && (
           <div className="space-y-3">
-            {current.suggestions && (
-              <div className="flex flex-wrap gap-2">
-                {current.suggestions.map((s) => (
+            {(current.kind === "chips" ||
+              current.kind === "number" ||
+              current.kind === "text") &&
+              current.suggestions && (
+                <div className="flex flex-wrap gap-2">
+                  {current.suggestions.map((s) => (
+                    <motion.button
+                      key={s}
+                      whileHover={{ y: -2, scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => submitSingle(s)}
+                      className="rounded-full border border-primary/30 bg-white/70 px-4 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+                    >
+                      {s}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+
+            {(current.kind === "multi" || current.kind === "pillars") && (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {(current.suggestions ?? []).map((s) => {
+                    const active = multiSel.includes(s);
+                    return (
+                      <motion.button
+                        key={s}
+                        whileHover={{ y: -2, scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => toggleMulti(s)}
+                        className={`rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                          active
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/40"
+                            : "border border-primary/30 bg-white/70 text-primary hover:bg-primary/10"
+                        }`}
+                      >
+                        {active ? "✓ " : ""}
+                        {s}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    {multiSel.length}/{current.max ?? "—"} selected
+                  </span>
                   <motion.button
-                    key={s}
-                    whileHover={{ y: -2, scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => submit(s)}
-                    className="rounded-full border border-primary/30 bg-white/70 px-4 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    disabled={multiSel.length === 0}
+                    onClick={submitMulti}
+                    className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/40 disabled:opacity-50"
                   >
-                    {s}
+                    Continue →
                   </motion.button>
-                ))}
-              </div>
+                </div>
+              </>
             )}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submit(input);
-              }}
-              className="flex gap-2"
-            >
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={current.placeholder}
-                type={current.type === "number" ? "number" : "text"}
-                autoFocus
-                className="flex-1 rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
-              />
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                type="submit"
-                className="rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/40"
+
+            {(current.kind === "text" ||
+              current.kind === "number" ||
+              current.kind === "chips") && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitSingle(input);
+                }}
+                className="flex gap-2"
               >
-                Send
-              </motion.button>
-            </form>
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={current.placeholder ?? "Type your answer…"}
+                  type={current.kind === "number" ? "number" : "text"}
+                  autoFocus
+                  className="flex-1 rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  type="submit"
+                  className="rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/40"
+                >
+                  Send
+                </motion.button>
+              </form>
+            )}
           </div>
         )}
       </div>
