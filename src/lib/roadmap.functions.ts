@@ -20,8 +20,13 @@ const profileSchema = z.object({
   aptitude: z.string().max(100).optional(),
   weakSkills: z.array(z.string().max(200)).max(20).optional(),
 
-  // Up to 3 daily focus pillars selected by the user
-  pillars: z.array(z.string().max(100)).max(3).optional(),
+  // Exactly 4 daily focus pillars
+  pillars: z.array(z.string().max(100)).max(8).optional(),
+  pillarLevels: z.record(z.string(), z.string().max(50)).optional(),
+  weakestPillar: z.string().max(200).optional(),
+  strongestPillar: z.string().max(200).optional(),
+  projectStatus: z.string().max(100).optional(),
+  notes: z.string().max(1000).optional(),
 
   adaptation: z
     .object({
@@ -120,6 +125,14 @@ export const generateRoadmap = createServerFn({ method: "POST" })
       ? `\nDaily focus pillars (must drive every day's missions): ${data.pillars.join(" · ")}`
       : "";
 
+    const levelsBlock = data.pillarLevels && Object.keys(data.pillarLevels).length
+      ? `\nPer-pillar current level:\n${Object.entries(data.pillarLevels)
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}`
+      : "";
+
+    const focusBlock = `${data.weakestPillar ? `\nWeakest pillar (allocate more time): ${data.weakestPillar}` : ""}${data.strongestPillar ? `\nStrongest pillar (allocate less time): ${data.strongestPillar}` : ""}${data.projectStatus ? `\nProject status: ${data.projectStatus}` : ""}${data.communication ? `\nCommunication level: ${data.communication}` : ""}${data.notes ? `\nExtra notes: ${data.notes}` : ""}`;
+
     const userPrompt = `Build a dynamic, weakness-weighted roadmap for this learner.
 
 Goal: ${data.goal}
@@ -128,7 +141,7 @@ Daily hours available: ${data.hours}
 Current skill level: ${data.skillLevel}
 Existing experience: ${data.experience || "(none provided)"}
 Weak areas: ${data.weakAreas || "(none provided)"}
-Preferred learning style: ${data.learningStyle}${placementBlock}${pillarBlock}
+Preferred learning style: ${data.learningStyle}${placementBlock}${pillarBlock}${levelsBlock}${focusBlock}
 ${
   data.adaptation
     ? `\nADAPTATION REQUEST: ${data.adaptation.note}\nCompleted so far: ${data.adaptation.completed?.join(", ") || "none"}\nMissed days: ${data.adaptation.missedDays ?? 0}\nRebalance the REMAINING plan — never force a restart.`
