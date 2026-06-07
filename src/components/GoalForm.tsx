@@ -8,7 +8,7 @@ export interface GoalData {
   weakAreas: string;
   learningStyle: string;
 
-  // Placement-prep extended profile
+  // Placement-prep extended profile (optional)
   target?: string;
   dsaLevel?: string;
   leetcode?: string;
@@ -18,6 +18,13 @@ export interface GoalData {
   aptitude?: string;
   weakSkills?: string[];
 
-  // Chosen daily focus pillars (max 3)
+  // Exactly 4 daily focus pillars
   pillars?: string[];
+
+  // Per-pillar level: { "DSA": "Beginner", ... }
+  pillarLevels?: Record<string, string>;
+  weakestPillar?: string;
+  strongestPillar?: string;
+  projectStatus?: string; // "No Project" | "Building Project" | "Completed Project"
+  notes?: string;
 }
