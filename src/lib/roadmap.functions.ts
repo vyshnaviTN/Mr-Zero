@@ -141,8 +141,7 @@ Daily hours available: ${data.hours}
 Current skill level: ${data.skillLevel}
 Existing experience: ${data.experience || "(none provided)"}
 Weak areas: ${data.weakAreas || "(none provided)"}
-Preferred learning style: ${data.learningStyle}${placementBlock}${pillarBlock}
-${
+Preferred learning style: ${data.learningStyle}${placementBlock}${pillarBlock}${levelsBlock}${focusBlock}
   data.adaptation
     ? `\nADAPTATION REQUEST: ${data.adaptation.note}\nCompleted so far: ${data.adaptation.completed?.join(", ") || "none"}\nMissed days: ${data.adaptation.missedDays ?? 0}\nRebalance the REMAINING plan — never force a restart.`
     : ""
