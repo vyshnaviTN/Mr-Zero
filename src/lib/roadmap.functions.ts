@@ -125,6 +125,14 @@ export const generateRoadmap = createServerFn({ method: "POST" })
       ? `\nDaily focus pillars (must drive every day's missions): ${data.pillars.join(" · ")}`
       : "";
 
+    const levelsBlock = data.pillarLevels && Object.keys(data.pillarLevels).length
+      ? `\nPer-pillar current level:\n${Object.entries(data.pillarLevels)
+          .map(([k, v]) => `- ${k}: ${v}`)
+          .join("\n")}`
+      : "";
+
+    const focusBlock = `${data.weakestPillar ? `\nWeakest pillar (allocate more time): ${data.weakestPillar}` : ""}${data.strongestPillar ? `\nStrongest pillar (allocate less time): ${data.strongestPillar}` : ""}${data.projectStatus ? `\nProject status: ${data.projectStatus}` : ""}${data.communication ? `\nCommunication level: ${data.communication}` : ""}${data.notes ? `\nExtra notes: ${data.notes}` : ""}`;
+
     const userPrompt = `Build a dynamic, weakness-weighted roadmap for this learner.
 
 Goal: ${data.goal}
