@@ -12,7 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as GeneratingRouteImport } from './routes/generating'
 import { Route as DiscoveryRouteImport } from './routes/discovery'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTasksRouteImport } from './routes/_app.tasks'
+import { Route as AppStreaksRouteImport } from './routes/_app.streaks'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppBadgesRouteImport } from './routes/_app.badges'
 
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
@@ -29,10 +35,39 @@ const DiscoveryRoute = DiscoveryRouteImport.update({
   path: '/discovery',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppTasksRoute = AppTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStreaksRoute = AppStreaksRouteImport.update({
+  id: '/streaks',
+  path: '/streaks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBadgesRoute = AppBadgesRouteImport.update({
+  id: '/badges',
+  path: '/badges',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -40,30 +75,76 @@ export interface FileRoutesByFullPath {
   '/discovery': typeof DiscoveryRoute
   '/generating': typeof GeneratingRoute
   '/welcome': typeof WelcomeRoute
+  '/badges': typeof AppBadgesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/settings': typeof AppSettingsRoute
+  '/streaks': typeof AppStreaksRoute
+  '/tasks': typeof AppTasksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/discovery': typeof DiscoveryRoute
   '/generating': typeof GeneratingRoute
   '/welcome': typeof WelcomeRoute
+  '/badges': typeof AppBadgesRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/settings': typeof AppSettingsRoute
+  '/streaks': typeof AppStreaksRoute
+  '/tasks': typeof AppTasksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/discovery': typeof DiscoveryRoute
   '/generating': typeof GeneratingRoute
   '/welcome': typeof WelcomeRoute
+  '/_app/badges': typeof AppBadgesRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/streaks': typeof AppStreaksRoute
+  '/_app/tasks': typeof AppTasksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/discovery' | '/generating' | '/welcome'
+  fullPaths:
+    | '/'
+    | '/discovery'
+    | '/generating'
+    | '/welcome'
+    | '/badges'
+    | '/dashboard'
+    | '/settings'
+    | '/streaks'
+    | '/tasks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/discovery' | '/generating' | '/welcome'
-  id: '__root__' | '/' | '/discovery' | '/generating' | '/welcome'
+  to:
+    | '/'
+    | '/discovery'
+    | '/generating'
+    | '/welcome'
+    | '/badges'
+    | '/dashboard'
+    | '/settings'
+    | '/streaks'
+    | '/tasks'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/discovery'
+    | '/generating'
+    | '/welcome'
+    | '/_app/badges'
+    | '/_app/dashboard'
+    | '/_app/settings'
+    | '/_app/streaks'
+    | '/_app/tasks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   DiscoveryRoute: typeof DiscoveryRoute
   GeneratingRoute: typeof GeneratingRoute
   WelcomeRoute: typeof WelcomeRoute
@@ -92,6 +173,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscoveryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -99,11 +187,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/tasks': {
+      id: '/_app/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AppTasksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/streaks': {
+      id: '/_app/streaks'
+      path: '/streaks'
+      fullPath: '/streaks'
+      preLoaderRoute: typeof AppStreaksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/badges': {
+      id: '/_app/badges'
+      path: '/badges'
+      fullPath: '/badges'
+      preLoaderRoute: typeof AppBadgesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppBadgesRoute: typeof AppBadgesRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppStreaksRoute: typeof AppStreaksRoute
+  AppTasksRoute: typeof AppTasksRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppBadgesRoute: AppBadgesRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppStreaksRoute: AppStreaksRoute,
+  AppTasksRoute: AppTasksRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   DiscoveryRoute: DiscoveryRoute,
   GeneratingRoute: GeneratingRoute,
   WelcomeRoute: WelcomeRoute,
