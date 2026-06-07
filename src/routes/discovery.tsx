@@ -10,179 +10,112 @@ export const Route = createFileRoute("/discovery")({
   component: Discovery,
 });
 
-type FieldKey = keyof GoalData;
+// ---------------- Pillar suggestions by goal type ----------------
 
-type StepKind = "text" | "number" | "chips" | "multi" | "pillars";
+const PILLAR_SUGGESTIONS: { match: RegExp; pillars: string[] }[] = [
+  {
+    match: /placement|interview|faang|company|job/i,
+    pillars: ["DSA", "Communication", "Projects", "Aptitude", "Resume", "System Design", "Interview Prep"],
+  },
+  {
+    match: /frontend|react|web/i,
+    pillars: ["HTML/CSS", "JavaScript", "React", "Projects", "Design Systems", "TypeScript"],
+  },
+  {
+    match: /law|upsc|constitution/i,
+    pillars: ["Concept Learning", "Case Studies", "Revision", "Mock Tests", "Current Affairs", "Answer Writing"],
+  },
+  {
+    match: /ai|ml|machine|data/i,
+    pillars: ["Math Foundations", "Python", "ML Theory", "Projects", "Papers", "Practice"],
+  },
+  {
+    match: /cat|gmat|gre/i,
+    pillars: ["Quant", "Verbal", "Data Interpretation", "Mock Tests", "Revision"],
+  },
+  {
+    match: /ielts|toefl/i,
+    pillars: ["Listening", "Reading", "Writing", "Speaking", "Mock Tests"],
+  },
+];
+
+function pillarSuggestions(goal: string): string[] {
+  for (const s of PILLAR_SUGGESTIONS) if (s.match.test(goal)) return s.pillars;
+  return ["Learn", "Practice", "Build", "Revise", "Reflect"];
+}
+
+// ---------------- Step model ----------------
+
+type StepKind = "text" | "number" | "chips" | "pillars" | "pillar-levels";
 
 interface Step {
-  field: FieldKey;
+  id: string;
+  kind: StepKind;
   question: string;
   placeholder?: string;
   suggestions?: string[];
-  kind: StepKind;
-  max?: number; // for multi
+  apply: (value: any, data: GoalData) => GoalData;
+  display?: (value: any) => string;
 }
 
-const BASE: Step[] = [
+const STATIC_STEPS: Step[] = [
   {
-    field: "goal",
-    question: "First — what is your goal?",
+    id: "goal",
+    kind: "chips",
+    question: "First — what is your main goal?",
     placeholder: "e.g. Crack product-based placements",
     suggestions: [
       "Placement Preparation",
-      "Learn AI",
-      "Constitutional Law",
-      "Learn Frontend Development",
+      "Frontend Development",
+      "AI / ML",
+      "UPSC",
+      "Law",
+      "CAT",
+      "IELTS",
     ],
-    kind: "chips",
+    apply: (v: string, d) => ({ ...d, goal: v }),
   },
   {
-    field: "duration",
-    question: "How much time do you have?",
-    placeholder: "60 Days",
-    suggestions: ["30 Days", "60 Days", "90 Days", "120 Days"],
+    id: "duration",
     kind: "chips",
+    question: "How many days do you have?",
+    placeholder: "60",
+    suggestions: ["30 Days", "60 Days", "90 Days", "180 Days"],
+    apply: (v: string, d) => ({ ...d, duration: v }),
   },
   {
-    field: "hours",
+    id: "hours",
+    kind: "number",
     question: "How many hours can you dedicate daily?",
     placeholder: "4",
     suggestions: ["1", "2", "3", "4", "6"],
-    kind: "number",
+    apply: (v: string, d) => ({ ...d, hours: v }),
   },
 ];
 
-const PLACEMENT_STEPS: Step[] = [
+const TAIL_STEPS: Step[] = [
   {
-    field: "target",
-    question: "What is your target?",
-    suggestions: [
-      "Product Based Companies",
-      "Service Based Companies",
-      "FAANG",
-      "Startups",
-      "Any Placement",
-    ],
+    id: "projectStatus",
     kind: "chips",
+    question: "Current project status?",
+    suggestions: ["No Project", "Building Project", "Completed Project"],
+    apply: (v: string, d) => ({ ...d, projectStatus: v }),
   },
   {
-    field: "dsaLevel",
-    question: "Rate your DSA level.",
-    suggestions: ["Beginner", "Intermediate", "Advanced"],
+    id: "communication",
     kind: "chips",
-  },
-  {
-    field: "leetcode",
-    question: "How many LeetCode problems have you solved?",
-    suggestions: ["0-25", "25-100", "100-300", "300+"],
-    kind: "chips",
-  },
-  {
-    field: "projects",
-    question: "What projects are you working on? (pick all that apply)",
-    suggestions: [
-      "Smart Cane",
-      "Portfolio Website",
-      "AI Chatbot",
-      "Krishi Sakhi",
-      "No Projects Yet",
-    ],
-    kind: "multi",
-    max: 6,
-  },
-  {
-    field: "communication",
-    question: "Rate your communication skills.",
+    question: "How would you rate your communication?",
     suggestions: ["Poor", "Average", "Good", "Excellent"],
-    kind: "chips",
+    apply: (v: string, d) => ({ ...d, communication: v }),
   },
   {
-    field: "hasResume",
-    question: "Do you already have a resume?",
-    suggestions: ["Yes", "No"],
-    kind: "chips",
-  },
-  {
-    field: "aptitude",
-    question: "How comfortable are you with aptitude?",
-    suggestions: ["Poor", "Average", "Good"],
-    kind: "chips",
-  },
-  {
-    field: "weakSkills",
-    question: "Which skills need the most improvement? (pick all that apply)",
-    suggestions: [
-      "DSA",
-      "Communication",
-      "Projects",
-      "Resume",
-      "Interview Preparation",
-      "Aptitude",
-    ],
-    kind: "multi",
-    max: 6,
+    id: "notes",
+    kind: "text",
+    question: "Anything else I should know?",
+    placeholder: "e.g. I work better at night, weak in math, prefer videos — or 'nothing'",
+    apply: (v: string, d) => ({ ...d, notes: v }),
   },
 ];
-
-const GENERIC_STEPS: Step[] = [
-  {
-    field: "skillLevel",
-    question: "What is your current level?",
-    suggestions: ["Beginner", "Intermediate", "Advanced"],
-    kind: "chips",
-  },
-  {
-    field: "experience",
-    question: "Any existing experience I should know about?",
-    placeholder: "e.g. built 2 small projects, took an intro course — or 'none'",
-    kind: "text",
-  },
-  {
-    field: "weakAreas",
-    question: "Any weak areas I should plan around?",
-    placeholder: "e.g. theory-heavy topics, math — or 'none'",
-    kind: "text",
-  },
-];
-
-const FINAL_PILLARS: Step = {
-  field: "pillars",
-  question: "Pick up to 3 daily focus pillars. These become your daily ritual.",
-  kind: "pillars",
-  max: 3,
-};
-
-const isPlacementGoal = (g: string) =>
-  /placement|interview|faang|company/i.test(g);
-
-function buildSteps(data: Partial<GoalData>): Step[] {
-  const out = [...BASE];
-  if (data.goal) {
-    if (isPlacementGoal(data.goal)) {
-      out.push(...PLACEMENT_STEPS);
-    } else {
-      out.push(...GENERIC_STEPS);
-    }
-    out.push({ ...FINAL_PILLARS, suggestions: defaultPillars(data) });
-  }
-  return out;
-}
-
-function defaultPillars(data: Partial<GoalData>): string[] {
-  if (data.goal && isPlacementGoal(data.goal)) {
-    return [
-      "DSA",
-      "Communication",
-      "Interview Preparation",
-      "Projects",
-      "Resume",
-      "Aptitude",
-      "System Design",
-    ];
-  }
-  // Generic suggested pillars
-  return ["Learn", "Practice", "Build", "Revise", "Reflect"];
-}
 
 interface ChatMsg {
   from: "zero" | "user";
@@ -191,7 +124,6 @@ interface ChatMsg {
 
 function Discovery() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
   const [data, setData] = useState<GoalData>({
     goal: "",
     duration: "",
@@ -200,18 +132,62 @@ function Discovery() {
     experience: "",
     weakAreas: "",
     learningStyle: "Mixed",
-    projects: [],
-    weakSkills: [],
     pillars: [],
+    pillarLevels: {},
   });
+  const [step, setStep] = useState(0);
   const [input, setInput] = useState("");
   const [multiSel, setMultiSel] = useState<string[]>([]);
+  const [levelDraft, setLevelDraft] = useState<Record<string, string>>({});
   const [speaking, setSpeaking] = useState(false);
   const [history, setHistory] = useState<ChatMsg[]>([]);
   const scroller = useRef<HTMLDivElement>(null);
   const initRef = useRef(false);
 
-  const steps = useMemo(() => buildSteps(data), [data]);
+  // Build the full step list dynamically based on captured data
+  const steps = useMemo<Step[]>(() => {
+    const out: Step[] = [...STATIC_STEPS];
+    if (data.goal) {
+      out.push({
+        id: "pillars",
+        kind: "pillars",
+        question:
+          "Choose your 4 daily pillars. These become your daily ritual — exactly four.",
+        suggestions: pillarSuggestions(data.goal),
+        apply: (v: string[], d) => ({ ...d, pillars: v }),
+        display: (v: string[]) => v.join(" · "),
+      });
+    }
+    if (data.pillars && data.pillars.length === 4) {
+      out.push({
+        id: "pillarLevels",
+        kind: "pillar-levels",
+        question: "What is your current level for each pillar?",
+        apply: (v: Record<string, string>, d) => ({ ...d, pillarLevels: v }),
+        display: (v: Record<string, string>) =>
+          Object.entries(v)
+            .map(([k, lvl]) => `${k}: ${lvl}`)
+            .join(", "),
+      });
+      out.push({
+        id: "weakestPillar",
+        kind: "chips",
+        question: "Which pillar is your weakest?",
+        suggestions: data.pillars,
+        apply: (v: string, d) => ({ ...d, weakestPillar: v, weakAreas: v }),
+      });
+      out.push({
+        id: "strongestPillar",
+        kind: "chips",
+        question: "And which is your strongest?",
+        suggestions: data.pillars,
+        apply: (v: string, d) => ({ ...d, strongestPillar: v }),
+      });
+      out.push(...TAIL_STEPS);
+    }
+    return out;
+  }, [data.goal, data.pillars]);
+
   const current = steps[step];
   const done = step >= steps.length;
 
@@ -223,13 +199,14 @@ function Discovery() {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if (!localStorage.getItem("p0_user")) {
       navigate({ to: "/" });
       return;
     }
     if (initRef.current) return;
     initRef.current = true;
-    setTimeout(() => ask(BASE[0].question), 400);
+    setTimeout(() => ask(STATIC_STEPS[0].question), 400);
   }, [navigate]);
 
   useEffect(() => {
@@ -240,64 +217,78 @@ function Discovery() {
     setHistory((h) => [...h, { from: "user", text: displayValue }]);
     setInput("");
     setMultiSel([]);
+    setLevelDraft({});
     setData(nextData);
-    const nextSteps = buildSteps(nextData);
-    const nextStep = step + 1;
 
-    if (nextStep >= nextSteps.length) {
+    // Recompute steps with the new data to know if we're done
+    const recomputed: Step[] = [...STATIC_STEPS];
+    if (nextData.goal) {
+      recomputed.push({ ...steps[3] ?? { id: "pillars", kind: "pillars", question: "", apply: (v: any, d) => d } });
+    }
+    // Just rely on the memo-driven length on next render; use a simple counter
+    const nextStep = step + 1;
+    const projectedTotal = projectedTotalLength(nextData);
+
+    if (nextStep >= projectedTotal) {
       setStep(nextStep);
       setTimeout(() => {
-        ask("Perfect. Let me design a roadmap weighted to your weak spots.");
+        ask("Perfect. Let me build a roadmap weighted to your weak spots.");
         setTimeout(() => {
           localStorage.setItem("p0_goals", JSON.stringify(nextData));
-          localStorage.setItem(
-            "p0_pillars",
-            JSON.stringify(nextData.pillars ?? []),
-          );
+          localStorage.setItem("p0_pillars", JSON.stringify(nextData.pillars ?? []));
           navigate({ to: "/generating" });
-        }, 1800);
+        }, 1600);
       }, 500);
     } else {
       setTimeout(() => {
         setStep(nextStep);
-        ask(nextSteps[nextStep].question);
-      }, 600);
+        // The next step's question depends on the new step list
+        const nextSteps = rebuildSteps(nextData);
+        const nq = nextSteps[nextStep]?.question;
+        if (nq) ask(nq);
+      }, 500);
     }
   };
 
   const submitSingle = (value: string) => {
     const v = value.trim();
-    if (!v) return;
-    const nextData = { ...data, [current.field]: v };
-    advance(nextData as GoalData, v);
+    if (!v || !current) return;
+    const nextData = current.apply(v, data);
+    advance(nextData, current.display ? current.display(v) : v);
   };
 
-  const submitMulti = () => {
-    if (multiSel.length === 0) return;
-    const nextData = { ...data, [current.field]: multiSel };
-    advance(nextData as GoalData, multiSel.join(", "));
+  const submitPillars = () => {
+    if (multiSel.length !== 4 || !current) return;
+    const nextData = current.apply(multiSel, data);
+    advance(nextData, multiSel.join(" · "));
   };
 
-  const toggleMulti = (s: string) => {
+  const submitLevels = () => {
+    if (!current || !data.pillars) return;
+    if (data.pillars.some((p) => !levelDraft[p])) return;
+    const nextData = current.apply(levelDraft, data);
+    advance(
+      nextData,
+      data.pillars.map((p) => `${p}: ${levelDraft[p]}`).join(", "),
+    );
+  };
+
+  const togglePillar = (s: string) => {
     setMultiSel((prev) => {
       if (prev.includes(s)) return prev.filter((x) => x !== s);
-      const max = current?.max ?? 99;
-      if (prev.length >= max) return prev;
+      if (prev.length >= 4) return prev;
       return [...prev, s];
     });
   };
 
-  const progress = useMemo(
-    () => Math.round((step / Math.max(steps.length, 1)) * 100),
-    [step, steps.length],
-  );
+  const totalProjected = projectedTotalLength(data);
+  const progress = Math.round((step / Math.max(totalProjected, 1)) * 100);
 
   return (
     <div className="relative flex min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute -left-32 top-20 h-96 w-96 rounded-full bg-pink-300/40 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 bottom-0 h-96 w-96 rounded-full bg-pink-400/30 blur-3xl" />
 
-      {/* Mr. Zero panel */}
       <div className="relative hidden w-[42%] flex-col items-center justify-center gap-6 p-10 lg:flex">
         <MrZero size={300} speaking={speaking} />
         <div className="w-64">
@@ -315,7 +306,6 @@ function Discovery() {
         </div>
       </div>
 
-      {/* Chat panel */}
       <div className="relative flex flex-1 flex-col px-6 py-8 lg:px-14">
         <div className="mb-4 flex justify-center lg:hidden">
           <MrZero size={140} speaking={speaking} />
@@ -351,26 +341,53 @@ function Discovery() {
 
         {!done && current && (
           <div className="space-y-3">
-            {(current.kind === "chips" ||
-              current.kind === "number" ||
-              current.kind === "text") &&
-              current.suggestions && (
-                <div className="flex flex-wrap gap-2">
-                  {current.suggestions.map((s) => (
-                    <motion.button
-                      key={s}
-                      whileHover={{ y: -2, scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => submitSingle(s)}
-                      className="rounded-full border border-primary/30 bg-white/70 px-4 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
-                    >
-                      {s}
-                    </motion.button>
-                  ))}
-                </div>
-              )}
+            {/* Chip / number / text suggestions */}
+            {(current.kind === "chips" || current.kind === "number" || current.kind === "text") && (
+              <>
+                {current.suggestions && (
+                  <div className="flex flex-wrap gap-2">
+                    {current.suggestions.map((s) => (
+                      <motion.button
+                        key={s}
+                        whileHover={{ y: -2, scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => submitSingle(s)}
+                        className="rounded-full border border-primary/30 bg-white/70 px-4 py-2 text-xs font-semibold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+                      >
+                        {s}
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    submitSingle(input);
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={current.placeholder ?? "Type your answer…"}
+                    type={current.kind === "number" ? "number" : "text"}
+                    autoFocus
+                    className="flex-1 rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    type="submit"
+                    className="rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/40"
+                  >
+                    Send
+                  </motion.button>
+                </form>
+              </>
+            )}
 
-            {(current.kind === "multi" || current.kind === "pillars") && (
+            {/* Pillar picker — exactly 4 */}
+            {current.kind === "pillars" && (
               <>
                 <div className="flex flex-wrap gap-2">
                   {(current.suggestions ?? []).map((s) => {
@@ -380,7 +397,7 @@ function Discovery() {
                         key={s}
                         whileHover={{ y: -2, scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
-                        onClick={() => toggleMulti(s)}
+                        onClick={() => togglePillar(s)}
                         className={`rounded-full px-4 py-2 text-xs font-semibold transition-all ${
                           active
                             ? "bg-primary text-primary-foreground shadow-md shadow-primary/40"
@@ -395,13 +412,13 @@ function Discovery() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-medium text-muted-foreground">
-                    {multiSel.length}/{current.max ?? "—"} selected
+                    {multiSel.length}/4 selected — pick exactly four
                   </span>
                   <motion.button
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
-                    disabled={multiSel.length === 0}
-                    onClick={submitMulti}
+                    disabled={multiSel.length !== 4}
+                    onClick={submitPillars}
                     className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/40 disabled:opacity-50"
                   >
                     Continue →
@@ -410,37 +427,104 @@ function Discovery() {
               </>
             )}
 
-            {(current.kind === "text" ||
-              current.kind === "number" ||
-              current.kind === "chips") && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  submitSingle(input);
-                }}
-                className="flex gap-2"
-              >
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={current.placeholder ?? "Type your answer…"}
-                  type={current.kind === "number" ? "number" : "text"}
-                  autoFocus
-                  className="flex-1 rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
-                />
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  type="submit"
-                  className="rounded-2xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/40"
-                >
-                  Send
-                </motion.button>
-              </form>
+            {/* Pillar-levels */}
+            {current.kind === "pillar-levels" && data.pillars && (
+              <>
+                <div className="space-y-2">
+                  {data.pillars.map((p) => (
+                    <div
+                      key={p}
+                      className="glass-card flex flex-wrap items-center justify-between gap-2 rounded-2xl px-4 py-3"
+                    >
+                      <span className="text-sm font-semibold">{p}</span>
+                      <div className="flex gap-1.5">
+                        {["Beginner", "Intermediate", "Advanced"].map((lvl) => {
+                          const active = levelDraft[p] === lvl;
+                          return (
+                            <button
+                              key={lvl}
+                              onClick={() => setLevelDraft((d) => ({ ...d, [p]: lvl }))}
+                              className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition-all ${
+                                active
+                                  ? "bg-primary text-primary-foreground"
+                                  : "border border-primary/30 text-primary hover:bg-primary/10"
+                              }`}
+                            >
+                              {lvl}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end">
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    disabled={data.pillars.some((p) => !levelDraft[p])}
+                    onClick={submitLevels}
+                    className="rounded-2xl bg-primary px-5 py-2.5 text-xs font-bold text-primary-foreground shadow-md shadow-primary/40 disabled:opacity-50"
+                  >
+                    Continue →
+                  </motion.button>
+                </div>
+              </>
             )}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+// ---------- helpers ----------
+
+function projectedTotalLength(d: GoalData): number {
+  // Mirrors the memo's step computation
+  let n = STATIC_STEPS.length;
+  if (d.goal) n += 1; // pillars
+  if (d.pillars && d.pillars.length === 4) {
+    n += 3; // pillarLevels + weakest + strongest
+    n += TAIL_STEPS.length;
+  }
+  return n;
+}
+
+function rebuildSteps(d: GoalData): Step[] {
+  // Mirror of the useMemo for use inside callbacks (just the questions)
+  const out: Step[] = [...STATIC_STEPS];
+  if (d.goal) {
+    out.push({
+      id: "pillars",
+      kind: "pillars",
+      question: "Choose your 4 daily pillars. These become your daily ritual — exactly four.",
+      suggestions: pillarSuggestions(d.goal),
+      apply: (v: string[], data) => ({ ...data, pillars: v }),
+    });
+  }
+  if (d.pillars && d.pillars.length === 4) {
+    out.push({
+      id: "pillarLevels",
+      kind: "pillar-levels",
+      question: "What is your current level for each pillar?",
+      apply: (v: Record<string, string>, data) => ({ ...data, pillarLevels: v }),
+    });
+    out.push({
+      id: "weakestPillar",
+      kind: "chips",
+      question: "Which pillar is your weakest?",
+      suggestions: d.pillars,
+      apply: (v: string, data) => ({ ...data, weakestPillar: v, weakAreas: v }),
+    });
+    out.push({
+      id: "strongestPillar",
+      kind: "chips",
+      question: "And which is your strongest?",
+      suggestions: d.pillars,
+      apply: (v: string, data) => ({ ...data, strongestPillar: v }),
+    });
+    out.push(...TAIL_STEPS);
+  }
+  return out;
 }

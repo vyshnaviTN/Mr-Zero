@@ -20,8 +20,13 @@ const profileSchema = z.object({
   aptitude: z.string().max(100).optional(),
   weakSkills: z.array(z.string().max(200)).max(20).optional(),
 
-  // Up to 3 daily focus pillars selected by the user
-  pillars: z.array(z.string().max(100)).max(3).optional(),
+  // Exactly 4 daily focus pillars
+  pillars: z.array(z.string().max(100)).max(8).optional(),
+  pillarLevels: z.record(z.string(), z.string().max(50)).optional(),
+  weakestPillar: z.string().max(200).optional(),
+  strongestPillar: z.string().max(200).optional(),
+  projectStatus: z.string().max(100).optional(),
+  notes: z.string().max(1000).optional(),
 
   adaptation: z
     .object({
