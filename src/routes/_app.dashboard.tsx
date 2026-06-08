@@ -11,13 +11,8 @@ export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardHome,
 });
 
-const HOVER_MESSAGES = [
-  "Keep building.",
-  "One task at a time.",
-  "Protect your streak.",
-  "Consistency beats intensity.",
-  "Today's effort becomes tomorrow's confidence.",
-];
+
+
 
 function pickMotivation(todayPct: number, streak: number, pillars: number) {
   if (todayPct === 100) return "Today is locked in. Your streak just grew stronger.";
