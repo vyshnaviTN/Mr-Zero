@@ -11,13 +11,8 @@ export const Route = createFileRoute("/_app/dashboard")({
   component: DashboardHome,
 });
 
-const HOVER_MESSAGES = [
-  "Keep building.",
-  "One task at a time.",
-  "Protect your streak.",
-  "Consistency beats intensity.",
-  "Today's effort becomes tomorrow's confidence.",
-];
+
+
 
 function pickMotivation(todayPct: number, streak: number, pillars: number) {
   if (todayPct === 100) return "Today is locked in. Your streak just grew stronger.";
@@ -91,19 +86,38 @@ function DashboardHome() {
             transition={{ type: "spring", stiffness: 140, damping: 20 }}
             className="relative mx-auto"
             style={{ width: 320, height: 320 }}
-            onHoverStart={() => {
-              const h = HOVER_MESSAGES[Math.floor(Math.random() * HOVER_MESSAGES.length)];
-              setMsg(h);
-              setSpeaking(true);
-              speak(h);
-              setTimeout(() => setSpeaking(false), 1800);
-            }}
           >
             <ProgressRing progress={todayPct} />
             <div className="absolute inset-0 grid place-items-center">
-              <MrZero size={240} speaking={speaking} />
+              <MrZero
+                size={240}
+                speaking={speaking}
+                interactive
+                mood={
+                  todayPct === 100
+                    ? "celebrate"
+                    : todayPct >= 50
+                    ? "happy"
+                    : streak.current === 0 && todayPct === 0
+                    ? "think"
+                    : "idle"
+                }
+                onPoke={(r) => {
+                  setMsg(r);
+                  setSpeaking(true);
+                  speak(r);
+                  setTimeout(() => setSpeaking(false), 2000);
+                }}
+                onHoverMessage={(r) => {
+                  setMsg(r);
+                  setSpeaking(true);
+                  speak(r);
+                  setTimeout(() => setSpeaking(false), 1800);
+                }}
+              />
             </div>
           </motion.div>
+
 
           <div className="space-y-5">
             <SpeechBubble message={msg || "Ready when you are."} side="left" />
