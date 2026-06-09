@@ -6,6 +6,8 @@ import { LogOut, RefreshCw, Zap, Frown, AlertTriangle } from "lucide-react";
 import { useP0 } from "@/lib/p0-state";
 import { generateRoadmap } from "@/lib/roadmap.functions";
 import { speak } from "@/components/SpeechBubble";
+import { pget, pclearAll } from "@/lib/pstore";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/settings")({
   head: () => ({ meta: [{ title: "Settings — Project 0" }] }),
