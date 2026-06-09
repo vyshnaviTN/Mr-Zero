@@ -27,7 +27,7 @@ function SettingsPage() {
     setStatus("Recalculating your roadmap…");
     speak("Recalculating your roadmap.");
     try {
-      const completed: string[] = JSON.parse(localStorage.getItem("p0_completed") ?? "[]");
+      const completed: string[] = JSON.parse(pget("p0_completed") ?? "[]");
       const next = await regenerate({
         data: {
           ...goals,
