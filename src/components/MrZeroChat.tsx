@@ -19,8 +19,11 @@ export function MrZeroChat() {
   const chat = useServerFn(chatWithMrZero);
   const scroller = useRef<HTMLDivElement>(null);
 
+  const { uid } = useUid();
+
   useEffect(() => {
-    const raw = localStorage.getItem("p0_chat");
+    if (!uid) return;
+    const raw = pget("p0_chat");
     if (raw) {
       try {
         setMsgs(JSON.parse(raw));
@@ -33,12 +36,12 @@ export function MrZeroChat() {
         },
       ]);
     }
-  }, []);
+  }, [uid]);
 
   useEffect(() => {
-    localStorage.setItem("p0_chat", JSON.stringify(msgs.slice(-30)));
+    if (uid) pset("p0_chat", JSON.stringify(msgs.slice(-30)));
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [msgs]);
+  }, [msgs, uid]);
 
   const send = async () => {
     const text = input.trim();
