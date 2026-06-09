@@ -142,13 +142,22 @@ function SettingsPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Clears your mission, streaks, and progress.
           </p>
-          <button
-            onClick={reset}
-            className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-destructive/30 bg-white px-4 py-2.5 text-sm font-bold text-destructive transition-all hover:bg-destructive hover:text-white"
-          >
-            <LogOut className="h-4 w-4" />
-            Reset & log out
-          </button>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              onClick={signOut}
+              className="inline-flex items-center gap-2 rounded-2xl border border-primary/30 bg-white px-4 py-2.5 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+            <button
+              onClick={reset}
+              className="inline-flex items-center gap-2 rounded-2xl border border-destructive/30 bg-white px-4 py-2.5 text-sm font-bold text-destructive transition-all hover:bg-destructive hover:text-white"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Reset everything
+            </button>
+          </div>
         </div>
       </div>
     </div>
