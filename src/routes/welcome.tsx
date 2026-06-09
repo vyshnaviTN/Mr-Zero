@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { MrZero } from "@/components/MrZero";
 import { SpeechBubble, speak } from "@/components/SpeechBubble";
+import { useUid } from "@/lib/pstore";
 
 export const Route = createFileRoute("/welcome")({
   head: () => ({ meta: [{ title: "Welcome — Project 0" }] }),
