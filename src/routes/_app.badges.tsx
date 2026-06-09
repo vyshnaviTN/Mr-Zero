@@ -5,6 +5,7 @@ import { Trophy, Lock, Sparkles } from "lucide-react";
 import { useP0 } from "@/lib/p0-state";
 import { BADGES } from "@/lib/streaks";
 import { speak } from "@/components/SpeechBubble";
+import { pget, pset } from "@/lib/pstore";
 
 export const Route = createFileRoute("/_app/badges")({
   head: () => ({ meta: [{ title: "Badges — Project 0" }] }),
@@ -17,11 +18,11 @@ function BadgesPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const seen: string[] = JSON.parse(localStorage.getItem("p0_badges_seen") ?? "[]");
+    const seen: string[] = JSON.parse(pget("p0_badges_seen") ?? "[]");
     const newly = BADGES.find((b) => streak.longest >= b.days && !seen.includes(b.id));
     if (newly) {
       setCelebrate(newly.label);
-      localStorage.setItem("p0_badges_seen", JSON.stringify([...seen, newly.id]));
+      pset("p0_badges_seen", JSON.stringify([...seen, newly.id]));
       speak(`You unlocked ${newly.label}!`);
       setTimeout(() => setCelebrate(null), 4500);
     }

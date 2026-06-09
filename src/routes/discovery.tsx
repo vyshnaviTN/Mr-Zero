@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MrZero } from "@/components/MrZero";
 import { speak } from "@/components/SpeechBubble";
 import type { GoalData } from "@/components/GoalForm";
+import { useUid, pset } from "@/lib/pstore";
 
 export const Route = createFileRoute("/discovery")({
   head: () => ({ meta: [{ title: "Discovery — Project 0" }] }),
@@ -124,6 +125,7 @@ interface ChatMsg {
 
 function Discovery() {
   const navigate = useNavigate();
+  const { uid, ready: authReady } = useUid();
   const [data, setData] = useState<GoalData>({
     goal: "",
     duration: "",
@@ -200,14 +202,14 @@ function Discovery() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!localStorage.getItem("p0_user")) {
-      navigate({ to: "/" });
+    if (authReady && !uid) {
+      navigate({ to: "/auth" });
       return;
     }
     if (initRef.current) return;
     initRef.current = true;
     setTimeout(() => ask(STATIC_STEPS[0].question), 400);
-  }, [navigate]);
+  }, [navigate, authReady, uid]);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
@@ -234,8 +236,8 @@ function Discovery() {
       setTimeout(() => {
         ask("Perfect. Let me build a roadmap weighted to your weak spots.");
         setTimeout(() => {
-          localStorage.setItem("p0_goals", JSON.stringify(nextData));
-          localStorage.setItem("p0_pillars", JSON.stringify(nextData.pillars ?? []));
+          pset("p0_goals", JSON.stringify(nextData));
+          pset("p0_pillars", JSON.stringify(nextData.pillars ?? []));
           navigate({ to: "/generating" });
         }, 1600);
       }, 500);

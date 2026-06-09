@@ -1,7 +1,8 @@
-// Shared client-side state hooks for Project 0.
+// Shared client-side state hooks for Project 0 (per-user via pstore).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GoalData } from "@/components/GoalForm";
 import type { Roadmap } from "@/lib/roadmap.functions";
+import { pget, pset, useUid } from "@/lib/pstore";
 import {
   bumpStreakIfComplete,
   completionPercent,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/streaks";
 
 export function useP0() {
+  const { uid } = useUid();
   const [goals, setGoals] = useState<GoalData | null>(null);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [pillars, setPillars] = useState<string[]>([]);
@@ -29,8 +31,16 @@ export function useP0() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const rawGoals = localStorage.getItem("p0_goals");
-    const rawRoadmap = localStorage.getItem("p0_roadmap");
+    if (!uid) {
+      setGoals(null);
+      setRoadmap(null);
+      setPillars([]);
+      setDaily({});
+      setStreak({ current: 0, longest: 0, lastFullDate: null });
+      return;
+    }
+    const rawGoals = pget("p0_goals");
+    const rawRoadmap = pget("p0_roadmap");
     if (rawGoals) setGoals(JSON.parse(rawGoals));
     if (rawRoadmap) setRoadmap(JSON.parse(rawRoadmap));
 
@@ -38,7 +48,7 @@ export function useP0() {
     const p =
       g?.pillars && g.pillars.length
         ? g.pillars
-        : JSON.parse(localStorage.getItem("p0_pillars") ?? "[]");
+        : JSON.parse(pget("p0_pillars") ?? "[]");
     setPillars(p);
 
     const d = loadDaily();
@@ -57,7 +67,7 @@ export function useP0() {
     }
     setDaily(d);
     setStreak(loadStreak());
-  }, [today]);
+  }, [today, uid]);
 
   const todayLog: DayLog = useMemo(
     () =>
@@ -91,6 +101,7 @@ export function useP0() {
   );
 
   return {
+    uid,
     goals,
     roadmap,
     pillars,
@@ -102,12 +113,11 @@ export function useP0() {
     togglePillar,
     setRoadmap: (r: Roadmap) => {
       setRoadmap(r);
-      localStorage.setItem("p0_roadmap", JSON.stringify(r));
+      pset("p0_roadmap", JSON.stringify(r));
     },
   };
 }
 
 export function builderLevel(longest: number) {
-  // Every 7 days = 1 level
   return Math.floor(longest / 7) + 1;
 }

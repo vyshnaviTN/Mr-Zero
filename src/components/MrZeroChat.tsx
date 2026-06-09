@@ -4,6 +4,7 @@ import { MessageCircle, Send, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { chatWithMrZero } from "@/lib/chat.functions";
 import { speak } from "./SpeechBubble";
+import { pget, pset, useUid } from "@/lib/pstore";
 
 interface Msg {
   role: "user" | "assistant";
@@ -18,8 +19,11 @@ export function MrZeroChat() {
   const chat = useServerFn(chatWithMrZero);
   const scroller = useRef<HTMLDivElement>(null);
 
+  const { uid } = useUid();
+
   useEffect(() => {
-    const raw = localStorage.getItem("p0_chat");
+    if (!uid) return;
+    const raw = pget("p0_chat");
     if (raw) {
       try {
         setMsgs(JSON.parse(raw));
@@ -32,12 +36,12 @@ export function MrZeroChat() {
         },
       ]);
     }
-  }, []);
+  }, [uid]);
 
   useEffect(() => {
-    localStorage.setItem("p0_chat", JSON.stringify(msgs.slice(-30)));
+    if (uid) pset("p0_chat", JSON.stringify(msgs.slice(-30)));
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
-  }, [msgs]);
+  }, [msgs, uid]);
 
   const send = async () => {
     const text = input.trim();
@@ -47,8 +51,8 @@ export function MrZeroChat() {
     setMsgs(next);
     setBusy(true);
     try {
-      const goals = localStorage.getItem("p0_goals");
-      const roadmap = localStorage.getItem("p0_roadmap");
+      const goals = pget("p0_goals");
+      const roadmap = pget("p0_roadmap");
       const reply = await chat({
         data: {
           history: next.slice(-10),

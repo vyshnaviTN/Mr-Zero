@@ -6,6 +6,8 @@ import { LogOut, RefreshCw, Zap, Frown, AlertTriangle } from "lucide-react";
 import { useP0 } from "@/lib/p0-state";
 import { generateRoadmap } from "@/lib/roadmap.functions";
 import { speak } from "@/components/SpeechBubble";
+import { pget, pclearAll } from "@/lib/pstore";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/settings")({
   head: () => ({ meta: [{ title: "Settings — Project 0" }] }),
@@ -25,7 +27,7 @@ function SettingsPage() {
     setStatus("Recalculating your roadmap…");
     speak("Recalculating your roadmap.");
     try {
-      const completed: string[] = JSON.parse(localStorage.getItem("p0_completed") ?? "[]");
+      const completed: string[] = JSON.parse(pget("p0_completed") ?? "[]");
       const next = await regenerate({
         data: {
           ...goals,
@@ -47,12 +49,16 @@ function SettingsPage() {
     }
   };
 
-  const reset = () => {
+  const reset = async () => {
     if (!confirm("Start over? Your roadmap, streaks, and progress will be cleared.")) return;
-    ["p0_user", "p0_goals", "p0_roadmap", "p0_pillars", "p0_completed", "p0_daily", "p0_streak", "p0_badges_seen", "p0_chat"].forEach(
-      (k) => localStorage.removeItem(k),
-    );
-    navigate({ to: "/" });
+    pclearAll();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth" });
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth" });
   };
 
   return (
@@ -136,13 +142,22 @@ function SettingsPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             Clears your mission, streaks, and progress.
           </p>
-          <button
-            onClick={reset}
-            className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-destructive/30 bg-white px-4 py-2.5 text-sm font-bold text-destructive transition-all hover:bg-destructive hover:text-white"
-          >
-            <LogOut className="h-4 w-4" />
-            Reset & log out
-          </button>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              onClick={signOut}
+              className="inline-flex items-center gap-2 rounded-2xl border border-primary/30 bg-white px-4 py-2.5 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-primary-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+            <button
+              onClick={reset}
+              className="inline-flex items-center gap-2 rounded-2xl border border-destructive/30 bg-white px-4 py-2.5 text-sm font-bold text-destructive transition-all hover:bg-destructive hover:text-white"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Reset everything
+            </button>
+          </div>
         </div>
       </div>
     </div>

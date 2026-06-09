@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { MrZero } from "@/components/MrZero";
 import { SpeechBubble, speak } from "@/components/SpeechBubble";
+import { useUid } from "@/lib/pstore";
 
 export const Route = createFileRoute("/welcome")({
   head: () => ({ meta: [{ title: "Welcome — Project 0" }] }),
@@ -17,12 +18,13 @@ const lines = [
 
 function Welcome() {
   const navigate = useNavigate();
+  const { uid, ready } = useUid();
   const [idx, setIdx] = useState(0);
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem("p0_user")) {
-      navigate({ to: "/" });
+    if (ready && !uid) {
+      navigate({ to: "/auth" });
       return;
     }
     let i = 0;
@@ -36,7 +38,7 @@ function Welcome() {
     tick();
     const id = setInterval(tick, 3400);
     return () => clearInterval(id);
-  }, [navigate]);
+  }, [navigate, ready, uid]);
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
