@@ -5,6 +5,7 @@ import { Trophy, Lock, Sparkles } from "lucide-react";
 import { useP0 } from "@/lib/p0-state";
 import { BADGES } from "@/lib/streaks";
 import { speak } from "@/components/SpeechBubble";
+import { pget, pset } from "@/lib/pstore";
 
 export const Route = createFileRoute("/_app/badges")({
   head: () => ({ meta: [{ title: "Badges — Project 0" }] }),
