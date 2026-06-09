@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MrZero } from "@/components/MrZero";
 import { speak } from "@/components/SpeechBubble";
 import type { GoalData } from "@/components/GoalForm";
+import { useUid, pset } from "@/lib/pstore";
 
 export const Route = createFileRoute("/discovery")({
   head: () => ({ meta: [{ title: "Discovery — Project 0" }] }),
