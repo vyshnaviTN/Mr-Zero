@@ -236,8 +236,8 @@ function Discovery() {
       setTimeout(() => {
         ask("Perfect. Let me build a roadmap weighted to your weak spots.");
         setTimeout(() => {
-          localStorage.setItem("p0_goals", JSON.stringify(nextData));
-          localStorage.setItem("p0_pillars", JSON.stringify(nextData.pillars ?? []));
+          pset("p0_goals", JSON.stringify(nextData));
+          pset("p0_pillars", JSON.stringify(nextData.pillars ?? []));
           navigate({ to: "/generating" });
         }, 1600);
       }, 500);
