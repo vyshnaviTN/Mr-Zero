@@ -18,12 +18,13 @@ const lines = [
 
 function Welcome() {
   const navigate = useNavigate();
+  const { uid, ready } = useUid();
   const [idx, setIdx] = useState(0);
   const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem("p0_user")) {
-      navigate({ to: "/" });
+    if (ready && !uid) {
+      navigate({ to: "/auth" });
       return;
     }
     let i = 0;
