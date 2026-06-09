@@ -200,14 +200,14 @@ function Discovery() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!localStorage.getItem("p0_user")) {
-      navigate({ to: "/" });
+    if (authReady && !uid) {
+      navigate({ to: "/auth" });
       return;
     }
     if (initRef.current) return;
     initRef.current = true;
     setTimeout(() => ask(STATIC_STEPS[0].question), 400);
-  }, [navigate]);
+  }, [navigate, authReady, uid]);
 
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
