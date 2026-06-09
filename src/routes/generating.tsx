@@ -6,6 +6,7 @@ import { MrZero } from "@/components/MrZero";
 import { speak } from "@/components/SpeechBubble";
 import { generateRoadmap } from "@/lib/roadmap.functions";
 import type { GoalData } from "@/components/GoalForm";
+import { pget, pset, premove, useUid } from "@/lib/pstore";
 
 export const Route = createFileRoute("/generating")({
   head: () => ({ meta: [{ title: "Building your roadmap — Project 0" }] }),
