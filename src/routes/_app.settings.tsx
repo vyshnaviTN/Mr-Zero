@@ -49,12 +49,16 @@ function SettingsPage() {
     }
   };
 
-  const reset = () => {
+  const reset = async () => {
     if (!confirm("Start over? Your roadmap, streaks, and progress will be cleared.")) return;
-    ["p0_user", "p0_goals", "p0_roadmap", "p0_pillars", "p0_completed", "p0_daily", "p0_streak", "p0_badges_seen", "p0_chat"].forEach(
-      (k) => localStorage.removeItem(k),
-    );
-    navigate({ to: "/" });
+    pclearAll();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth" });
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth" });
   };
 
   return (
