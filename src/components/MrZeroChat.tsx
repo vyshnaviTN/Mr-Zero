@@ -4,6 +4,7 @@ import { MessageCircle, Send, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { chatWithMrZero } from "@/lib/chat.functions";
 import { speak } from "./SpeechBubble";
+import { pget, pset, useUid } from "@/lib/pstore";
 
 interface Msg {
   role: "user" | "assistant";
