@@ -51,8 +51,8 @@ export function MrZeroChat() {
     setMsgs(next);
     setBusy(true);
     try {
-      const goals = localStorage.getItem("p0_goals");
-      const roadmap = localStorage.getItem("p0_roadmap");
+      const goals = pget("p0_goals");
+      const roadmap = pget("p0_roadmap");
       const reply = await chat({
         data: {
           history: next.slice(-10),
