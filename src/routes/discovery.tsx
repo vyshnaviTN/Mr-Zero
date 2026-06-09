@@ -124,6 +124,7 @@ interface ChatMsg {
 
 function Discovery() {
   const navigate = useNavigate();
+  const { uid, ready: authReady } = useUid();
   const [data, setData] = useState<GoalData>({
     goal: "",
     duration: "",
