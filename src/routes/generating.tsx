@@ -24,14 +24,20 @@ const stages = [
 function Generating() {
   const navigate = useNavigate();
   const generate = useServerFn(generateRoadmap);
+  const { uid, ready } = useUid();
   const [stage, setStage] = useState(0);
   const startedRef = useRef(false);
 
   useEffect(() => {
+    if (!ready) return;
+    if (!uid) {
+      navigate({ to: "/auth" });
+      return;
+    }
     if (startedRef.current) return;
     startedRef.current = true;
 
-    const raw = localStorage.getItem("p0_goals");
+    const raw = pget("p0_goals");
     if (!raw) {
       navigate({ to: "/discovery" });
       return;
@@ -52,8 +58,8 @@ function Generating() {
     (async () => {
       try {
         const [, roadmap] = await Promise.all([minDelay, generate({ data: goals })]);
-        localStorage.setItem("p0_roadmap", JSON.stringify(roadmap));
-        localStorage.removeItem("p0_completed");
+        pset("p0_roadmap", JSON.stringify(roadmap));
+        premove("p0_completed");
         clearInterval(stageId);
         speak("Your personalized roadmap is ready!");
         setTimeout(() => navigate({ to: "/dashboard" }), 900);
