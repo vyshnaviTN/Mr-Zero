@@ -38,7 +38,7 @@ function Welcome() {
     tick();
     const id = setInterval(tick, 3400);
     return () => clearInterval(id);
-  }, [navigate]);
+  }, [navigate, ready, uid]);
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6">
