@@ -43,6 +43,7 @@ export interface Mission {
   title: string;
   type: "learn" | "practice" | "project" | "revision" | "assessment";
   hours: number;
+  details: string; // Highly detailed instructions (resources, specific problems, etc)
 }
 export interface DayPlan {
   day: number;
@@ -82,7 +83,8 @@ HARD RULES:
   Generate the distribution dynamically from the user's actual profile — do not copy that example.
 - Total allocated hours must roughly equal duration_days * daily_hours. Each topic must include both "hours" and "percent".
 - For each topic include a short "reason" explaining WHY it got that share (e.g. "DSA marked weak + 0-25 LeetCode solved").
-- Build weekly themes and concrete DAILY missions. Each mission must be small, measurable, action-verb-led (e.g. "Solve 5 array problems", "Record a 60s self-introduction", "Draft resume bullet for project X"). Never vague.
+- Build weekly themes and concrete DAILY missions. Each mission must be small, measurable, action-verb-led. 
+- HIGHLY DETAILED MISSIONS: Telling the user to "Solve coding problems" is unacceptable. You MUST provide a "details" field for each mission that tells them exactly what to do. Example: "Solve Two Sum and Best Time to Buy and Sell Stock on LeetCode. Focus on O(n) time complexity using HashMaps."
 - Mix mission types: learn, practice, project, revision, assessment.
 - If the user picked focus pillars (max 3), make those the spine of every day — each day's missions should advance those pillars.
 - Respect skill level, experience, projects already in progress, weak areas, and learning style.
@@ -98,7 +100,7 @@ Respond with ONLY a JSON object, no prose, no markdown fences, matching:
     "week": number,
     "theme": string,
     "goals": [string],
-    "days": [{ "day": number, "focus": string, "missions": [{ "title": string, "type": "learn"|"practice"|"project"|"revision"|"assessment", "hours": number }] }]
+    "days": [{ "day": number, "focus": string, "missions": [{ "title": string, "type": "learn"|"practice"|"project"|"revision"|"assessment", "hours": number, "details": string }] }]
   }],
   "encouragement": string
 }`;
@@ -106,19 +108,11 @@ Respond with ONLY a JSON object, no prose, no markdown fences, matching:
 export const generateRoadmap = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => profileSchema.parse(d))
   .handler(async ({ data }): Promise<Roadmap> => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) throw new Error("GROQ_API_KEY missing — add it to your .env file.");
 
     const placementBlock = data.target
-      ? `\nPlacement profile:
-- Target: ${data.target}
-- DSA level: ${data.dsaLevel ?? "unknown"}
-- LeetCode solved: ${data.leetcode ?? "unknown"}
-- Active projects: ${(data.projects ?? []).join(", ") || "none"}
-- Communication: ${data.communication ?? "unknown"}
-- Has resume: ${data.hasResume ?? "unknown"}
-- Aptitude comfort: ${data.aptitude ?? "unknown"}
-- Self-reported weak skills: ${(data.weakSkills ?? []).join(", ") || "none"}`
+      ? `\nPlacement profile:\n- Target: ${data.target}\n- DSA level: ${data.dsaLevel ?? "unknown"}\n- LeetCode solved: ${data.leetcode ?? "unknown"}\n- Active projects: ${(data.projects ?? []).join(", ") || "none"}\n- Communication: ${data.communication ?? "unknown"}\n- Has resume: ${data.hasResume ?? "unknown"}\n- Aptitude comfort: ${data.aptitude ?? "unknown"}\n- Self-reported weak skills: ${(data.weakSkills ?? []).join(", ") || "none"}`
       : "";
 
     const pillarBlock = data.pillars && data.pillars.length
@@ -149,42 +143,63 @@ ${
 }
 
 Steps you must perform internally:
-1. Decompose the goal into required sub-skills.
+1. Decompose the goal into required sub-skills. Even if the goal is completely custom or unusual, construct a logical learning path.
 2. Order them by prerequisites.
 3. WEIGHT time by weakness (strong areas get less, weak areas get more). Output explicit "percent" and "reason" per topic.
-4. Total hours ≈ duration_in_days * daily_hours.
+4. Estimate total hours based on duration and daily hours.
 5. Make daily missions revolve around the user's chosen pillars when provided.
-Keep the plan realistic and achievable.`;
+Keep the plan realistic and achievable. YOU MUST RETURN VALID JSON.`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    let lastError: Error | unknown;
+    
+    // Retry up to 3 times for resilience against AI hallucination
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: SYSTEM },
+              { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+            temperature: Math.min(0.7 + (attempt * 0.1), 1.0), // slightly increase creativity on retries
+            max_tokens: 8192,
+          }),
+        });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`AI gateway error ${res.status}: ${text.slice(0, 300)}`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Groq API error ${res.status}: ${text.slice(0, 300)}`);
+        }
+        const json = await res.json();
+        const content: string = json?.choices?.[0]?.message?.content ?? "";
+        let parsed: Roadmap;
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          // Fallback: try to extract JSON from any surrounding text
+          const match = content.match(/\{[\s\S]*\}/);
+          if (!match) throw new Error("AI returned a non-JSON response.");
+          parsed = JSON.parse(match[0]);
+        }
+        
+        // Basic sanity check to ensure it matches Roadmap interface roughly
+        if (!parsed.weeks || !Array.isArray(parsed.weeks) || !parsed.topics || !Array.isArray(parsed.topics)) {
+          throw new Error("Missing required Roadmap fields in JSON");
+        }
+        
+        return parsed;
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Project Zero] AI Generation attempt ${attempt} failed:`, err);
+      }
     }
-    const json = await res.json();
-    const content: string = json?.choices?.[0]?.message?.content ?? "";
-    let parsed: Roadmap;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      const match = content.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("AI returned non-JSON response");
-      parsed = JSON.parse(match[0]);
-    }
-    return parsed;
+    
+    throw lastError;
   });

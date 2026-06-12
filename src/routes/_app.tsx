@@ -2,7 +2,8 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { MrZeroChat } from "@/components/MrZeroChat";
-import { useUid, pget } from "@/lib/pstore";
+import { useAuth } from "@clerk/tanstack-react-start";
+import { pget } from "@/lib/pstore";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -10,11 +11,11 @@ export const Route = createFileRoute("/_app")({
 
 function AppLayout() {
   const navigate = useNavigate();
-  const { uid, ready } = useUid();
+  const { userId, isLoaded } = useAuth();
 
   useEffect(() => {
-    if (!ready) return;
-    if (!uid) {
+    if (!isLoaded) return;
+    if (!userId) {
       navigate({ to: "/auth" });
       return;
     }
@@ -22,9 +23,9 @@ function AppLayout() {
     const hasRoadmap = !!pget("p0_roadmap");
     if (!hasGoals) navigate({ to: "/welcome" });
     else if (!hasRoadmap) navigate({ to: "/generating" });
-  }, [navigate, uid, ready]);
+  }, [navigate, userId, isLoaded]);
 
-  if (!ready || !uid) {
+  if (!isLoaded || !userId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-sm text-muted-foreground">Loading…</div>
@@ -35,7 +36,7 @@ function AppLayout() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="relative flex-1 overflow-x-hidden">
+      <main className="relative flex-1 overflow-x-hidden pb-20 md:pb-0">
         <Outlet />
       </main>
       <MrZeroChat />

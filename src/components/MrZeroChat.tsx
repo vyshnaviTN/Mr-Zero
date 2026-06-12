@@ -78,7 +78,7 @@ export function MrZeroChat() {
         whileHover={{ scale: 1.08, y: -2 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/40"
+        className="fixed bottom-[5rem] md:bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/40"
         aria-label="Chat with Mr. Zero"
       >
         <AnimatePresence mode="wait">
@@ -101,7 +101,7 @@ export function MrZeroChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 280, damping: 26 }}
-            className="fixed bottom-24 right-6 z-40 flex h-[28rem] w-[22rem] flex-col overflow-hidden rounded-3xl border border-border bg-white/90 shadow-2xl backdrop-blur-xl"
+            className="fixed bottom-[8.5rem] md:bottom-24 right-4 md:right-6 z-40 flex h-[28rem] w-[calc(100vw-2rem)] md:w-[22rem] flex-col overflow-hidden rounded-3xl border border-border bg-white/90 shadow-2xl backdrop-blur-xl"
           >
             <div className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-4 py-3">
               <div className="grid h-8 w-8 place-items-center rounded-full bg-primary font-bold text-primary-foreground">0</div>

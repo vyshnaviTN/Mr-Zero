@@ -35,27 +35,40 @@ export function SpeechBubble({ message, side = "left" }: SpeechBubbleProps) {
 let chosenVoice: SpeechSynthesisVoice | null = null;
 let voiceReady = false;
 
+export function setVoiceGender(gender: "male" | "female") {
+  localStorage.setItem("p0_voice_gender", gender);
+  chosenVoice = null; // force repick
+}
+
+export function getVoiceGender(): "male" | "female" {
+  if (typeof window === "undefined") return "male";
+  return (localStorage.getItem("p0_voice_gender") as "male" | "female") || "male";
+}
+
 function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !window.speechSynthesis) return null;
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
 
-  const storedName = localStorage.getItem("p0_voice");
-  if (storedName) {
-    const stored = voices.find((v) => v.name === storedName);
-    if (stored) return stored;
+  const gender = getVoiceGender();
+
+  let preferred: SpeechSynthesisVoice | undefined;
+
+  if (gender === "female") {
+    preferred =
+      voices.find((v) => /samantha|zira|jenny|aria|female/i.test(v.name) && v.lang.startsWith("en")) ||
+      voices.find((v) => v.lang === "en-US" && /female/i.test(v.name));
+  } else {
+    preferred =
+      voices.find((v) => /david|mark|guy|male/i.test(v.name) && v.lang.startsWith("en")) ||
+      voices.find((v) => v.lang === "en-US" && /male/i.test(v.name) && !/female/i.test(v.name));
   }
 
-  const preferred =
-    voices.find((v) => /samantha/i.test(v.name)) ||
-    voices.find((v) => /google.*us.*english/i.test(v.name)) ||
-    voices.find((v) => /zira|jenny|aria/i.test(v.name)) ||
-    voices.find((v) => v.lang === "en-US" && /female/i.test(v.name)) ||
-    voices.find((v) => v.lang === "en-US") ||
-    voices.find((v) => v.lang.startsWith("en")) ||
-    voices[0];
+  // Fallback if specific gender not found
+  if (!preferred) {
+    preferred = voices.find((v) => v.lang === "en-US") || voices[0];
+  }
 
-  if (preferred) localStorage.setItem("p0_voice", preferred.name);
   return preferred ?? null;
 }
 

@@ -1,9 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Check, Target, Clock } from "lucide-react";
+import { Check, Target, Clock, BookOpen, Wrench, Hammer, RotateCcw, CheckCircle2 } from "lucide-react";
 import { useP0 } from "@/lib/p0-state";
 import { speak } from "@/components/SpeechBubble";
+import { pget, pset } from "@/lib/pstore";
+import type { Mission, DayPlan, WeekPlan } from "@/lib/roadmap.functions";
+
+const typeMeta: Record<Mission["type"], { icon: typeof BookOpen; label: string; color: string }> = {
+  learn: { icon: BookOpen, label: "Learn", color: "text-sky-600 bg-sky-100" },
+  practice: { icon: Wrench, label: "Practice", color: "text-violet-600 bg-violet-100" },
+  project: { icon: Hammer, label: "Project", color: "text-amber-600 bg-amber-100" },
+  revision: { icon: RotateCcw, label: "Revision", color: "text-rose-600 bg-rose-100" },
+  assessment: { icon: CheckCircle2, label: "Assessment", color: "text-emerald-600 bg-emerald-100" },
+};
 
 export const Route = createFileRoute("/_app/tasks")({
   head: () => ({ meta: [{ title: "Tasks — Project 0" }] }),
@@ -19,8 +29,51 @@ const REACTIONS = [
 ];
 
 function TasksPage() {
-  const { goals, pillars, todayLog, todayPct, togglePillar } = useP0();
+  const { goals, pillars, roadmap, todayLog, todayPct, togglePillar } = useP0();
   const [lastReaction, setLastReaction] = useState<string | null>(null);
+  const [completedMissions, setCompletedMissions] = useState<Set<string>>(() => {
+    try {
+      const raw = pget("p0_completed");
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const toggleMission = (id: string) => {
+    setCompletedMissions((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      pset("p0_completed", JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  // Find the first day that has incomplete missions
+  let activeWeek: WeekPlan | null = null;
+  let activeDay: DayPlan | null = null;
+  let isAllDone = false;
+
+  if (roadmap) {
+    for (const week of roadmap.weeks) {
+      for (const day of week.days) {
+        const allDone = day.missions.every((m, i) => completedMissions.has(`w${week.week}d${day.day}m${i}`));
+        if (!allDone) {
+          if (!activeDay) {
+            activeWeek = week;
+            activeDay = day;
+          }
+        }
+      }
+    }
+    if (!activeDay && roadmap.weeks.length > 0) {
+      // If we finished everything, just show the very last day
+      activeWeek = roadmap.weeks[roadmap.weeks.length - 1];
+      activeDay = activeWeek.days[activeWeek.days.length - 1];
+      isAllDone = true;
+    }
+  }
 
   useEffect(() => {
     if (todayPct === 100) {
@@ -126,12 +179,81 @@ function TasksPage() {
           })}
         </div>
 
+        {activeDay && activeWeek && (
+          <div className="mt-12">
+            <div className="mb-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+                Your Roadmap
+              </div>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight">
+                {isAllDone ? "Roadmap Complete! 🎉" : `Week ${activeWeek.week}, Day ${activeDay.day}`}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {activeDay.focus}
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              {activeDay.missions.map((m, i) => {
+                const id = `w${activeWeek!.week}d${activeDay!.day}m${i}`;
+                const done = completedMissions.has(id);
+                const meta = typeMeta[m.type] ?? typeMeta.learn;
+                const Icon = meta.icon;
+                
+                return (
+                  <motion.div
+                    key={id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`glass-card relative flex items-start gap-4 rounded-3xl p-6 transition-all ${
+                      done ? "opacity-70" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleMission(id)}
+                      className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition-all ${
+                        done
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-white hover:border-primary shadow-sm"
+                      }`}
+                    >
+                      {done && <CheckCircle2 className="h-4 w-4" />}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-base font-bold ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                        {m.title}
+                      </div>
+                      {m.details && (
+                        <div className={`mt-2 text-sm leading-relaxed ${done ? "text-muted-foreground" : "text-foreground/80"}`}>
+                          {m.details}
+                        </div>
+                      )}
+                      <div className="mt-4 flex items-center gap-2 text-xs">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ${meta.color}`}>
+                          <Icon className="h-3.5 w-3.5" />
+                          {meta.label}
+                        </span>
+                        <span className="text-muted-foreground font-medium flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {m.hours}h
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {lastReaction && (
           <motion.div
             key={lastReaction}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card mt-6 rounded-3xl p-4 text-sm font-medium text-foreground/80"
+            className="glass-card mt-8 rounded-3xl p-4 text-sm font-medium text-foreground/80"
           >
             <span className="font-bold text-primary">Mr. Zero:</span> {lastReaction}
           </motion.div>

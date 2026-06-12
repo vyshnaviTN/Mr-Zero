@@ -80,10 +80,15 @@ export function RoadmapCard({
                       {done && <CheckCircle2 className="h-3.5 w-3.5" />}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <div className={`text-sm font-medium ${done ? "text-muted-foreground line-through" : "text-foreground/90"}`}>
+                      <div className={`text-sm font-bold ${done ? "text-muted-foreground line-through" : "text-foreground/90"}`}>
                         {m.title}
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-[10px]">
+                      {m.details && (
+                        <div className={`mt-1 text-xs leading-relaxed ${done ? "text-muted-foreground line-through" : "text-muted-foreground"}`}>
+                          {m.details}
+                        </div>
+                      )}
+                      <div className="mt-2 flex items-center gap-2 text-[10px]">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${meta.color}`}>
                           <Icon className="h-3 w-3" />
                           {meta.label}

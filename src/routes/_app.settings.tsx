@@ -5,9 +5,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { LogOut, RefreshCw, Zap, Frown, AlertTriangle } from "lucide-react";
 import { useP0 } from "@/lib/p0-state";
 import { generateRoadmap } from "@/lib/roadmap.functions";
-import { speak } from "@/components/SpeechBubble";
+import { speak, getVoiceGender, setVoiceGender } from "@/components/SpeechBubble";
 import { pget, pclearAll } from "@/lib/pstore";
-import { supabase } from "@/integrations/supabase/client";
+import { useClerk } from "@clerk/tanstack-react-start";
 
 export const Route = createFileRoute("/_app/settings")({
   head: () => ({ meta: [{ title: "Settings — Project 0" }] }),
@@ -20,6 +20,10 @@ function SettingsPage() {
   const regenerate = useServerFn(generateRoadmap);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const { signOut: clerkSignOut } = useClerk();
+  
+  // Voice state
+  const [voice, setVoice] = useState<"male" | "female">(getVoiceGender());
 
   const adapt = async (note: string) => {
     if (!goals || busy) return;
@@ -52,12 +56,12 @@ function SettingsPage() {
   const reset = async () => {
     if (!confirm("Start over? Your roadmap, streaks, and progress will be cleared.")) return;
     pclearAll();
-    await supabase.auth.signOut();
+    await clerkSignOut();
     navigate({ to: "/auth" });
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await clerkSignOut();
     navigate({ to: "/auth" });
   };
 
@@ -133,6 +137,47 @@ function SettingsPage() {
               {status}
             </div>
           )}
+        </div>
+
+        <div className="glass-card mb-6 rounded-3xl p-6">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-primary">
+            Voice Settings
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Choose Mr. Zero's voice.
+          </p>
+          <div className="mt-4 flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="radio" 
+                name="voice" 
+                value="male" 
+                checked={voice === "male"} 
+                onChange={() => {
+                  setVoice("male");
+                  setVoiceGender("male");
+                  speak("Hello. I am Mr. Zero.");
+                }}
+                className="text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium">Male</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="radio" 
+                name="voice" 
+                value="female" 
+                checked={voice === "female"} 
+                onChange={() => {
+                  setVoice("female");
+                  setVoiceGender("female");
+                  speak("Hello. I am Mr. Zero.");
+                }}
+                className="text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium">Female</span>
+            </label>
+          </div>
         </div>
 
         <div className="glass-card rounded-3xl p-6">

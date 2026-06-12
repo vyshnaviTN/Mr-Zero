@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTasksRouteImport } from './routes/_app.tasks'
 import { Route as AppStreaksRouteImport } from './routes/_app.streaks'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppRoadmapRouteImport } from './routes/_app.roadmap'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppBadgesRouteImport } from './routes/_app.badges'
 
@@ -65,6 +66,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRoadmapRoute = AppRoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/welcome': typeof WelcomeRoute
   '/badges': typeof AppBadgesRoute
   '/dashboard': typeof AppDashboardRoute
+  '/roadmap': typeof AppRoadmapRoute
   '/settings': typeof AppSettingsRoute
   '/streaks': typeof AppStreaksRoute
   '/tasks': typeof AppTasksRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/welcome': typeof WelcomeRoute
   '/badges': typeof AppBadgesRoute
   '/dashboard': typeof AppDashboardRoute
+  '/roadmap': typeof AppRoadmapRoute
   '/settings': typeof AppSettingsRoute
   '/streaks': typeof AppStreaksRoute
   '/tasks': typeof AppTasksRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/welcome': typeof WelcomeRoute
   '/_app/badges': typeof AppBadgesRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/roadmap': typeof AppRoadmapRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/streaks': typeof AppStreaksRoute
   '/_app/tasks': typeof AppTasksRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/badges'
     | '/dashboard'
+    | '/roadmap'
     | '/settings'
     | '/streaks'
     | '/tasks'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/badges'
     | '/dashboard'
+    | '/roadmap'
     | '/settings'
     | '/streaks'
     | '/tasks'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/welcome'
     | '/_app/badges'
     | '/_app/dashboard'
+    | '/_app/roadmap'
     | '/_app/settings'
     | '/_app/streaks'
     | '/_app/tasks'
@@ -228,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/roadmap': {
+      id: '/_app/roadmap'
+      path: '/roadmap'
+      fullPath: '/roadmap'
+      preLoaderRoute: typeof AppRoadmapRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -248,6 +267,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppBadgesRoute: typeof AppBadgesRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppRoadmapRoute: typeof AppRoadmapRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppStreaksRoute: typeof AppStreaksRoute
   AppTasksRoute: typeof AppTasksRoute
@@ -256,6 +276,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppBadgesRoute: AppBadgesRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppRoadmapRoute: AppRoadmapRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppStreaksRoute: AppStreaksRoute,
   AppTasksRoute: AppTasksRoute,
@@ -274,3 +295,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

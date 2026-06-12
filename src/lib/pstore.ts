@@ -1,51 +1,21 @@
-// Per-user namespaced localStorage. Every key is prefixed with the signed-in
-// user's UID so two accounts on the same device never see each other's data.
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@clerk/tanstack-react-start";
+import { useEffect } from "react";
 
 let _uid: string | null = null;
-let _email: string | null = null;
-let _ready = false;
-const listeners = new Set<() => void>();
 
-function notify() {
-  listeners.forEach((fn) => fn());
-}
-
-if (typeof window !== "undefined") {
-  supabase.auth.getSession().then(({ data }) => {
-    _uid = data.session?.user?.id ?? null;
-    _email = data.session?.user?.email ?? null;
-    _ready = true;
-    notify();
-  });
-  supabase.auth.onAuthStateChange((_evt, session) => {
-    _uid = session?.user?.id ?? null;
-    _email = session?.user?.email ?? null;
-    _ready = true;
-    notify();
-  });
-}
-
+// Expose the getter for non-react code like the localStorage helpers below.
+// For React components, they should use `useUid()` which uses Clerk under the hood.
 export const getUid = () => _uid;
-export const getEmail = () => _email;
-export const isAuthReady = () => _ready;
+export const isAuthReady = () => true;
 
 export function useUid() {
-  const [u, setU] = useState(_uid);
-  const [ready, setReady] = useState(_ready);
+  const { userId, isLoaded } = useAuth();
+  
   useEffect(() => {
-    const fn = () => {
-      setU(_uid);
-      setReady(_ready);
-    };
-    listeners.add(fn);
-    fn();
-    return () => {
-      listeners.delete(fn);
-    };
-  }, []);
-  return { uid: u, ready };
+    _uid = userId ?? null;
+  }, [userId]);
+
+  return { uid: userId, ready: isLoaded };
 }
 
 const k = (key: string) => (_uid ? `u:${_uid}::${key}` : null);

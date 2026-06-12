@@ -18,7 +18,9 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+import { clerkMiddleware } from "@clerk/tanstack-react-start/server";
+
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
-  requestMiddleware: [errorMiddleware],
+  functionMiddleware: [],
+  requestMiddleware: [clerkMiddleware(), errorMiddleware],
 }));

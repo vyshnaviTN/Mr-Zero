@@ -1,36 +1,23 @@
-type LovableErrorOptions = {
+// Generic error reporting stub.
+// Replace with Sentry, LogRocket, or any other error tracking service if needed.
+// Example with Sentry: https://sentry.io/for/react/
+
+type ErrorOptions = {
   mechanism?: "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
   handled?: boolean;
   severity?: "error" | "warning" | "info";
 };
 
-type LovableEvents = {
-  captureException?: (
-    error: unknown,
-    context?: Record<string, unknown>,
-    options?: LovableErrorOptions,
-  ) => void;
-};
-
-declare global {
-  interface Window {
-    __lovableEvents?: LovableEvents;
+export function reportError(
+  error: unknown,
+  context: Record<string, unknown> = {},
+  _options: ErrorOptions = {},
+) {
+  // In production, integrate your preferred error tracking service here.
+  // For now, we log to the console so errors are visible during development.
+  if (typeof window === "undefined") {
+    console.error("[Server Error]", error, context);
+  } else {
+    console.error("[Client Error]", error, { ...context, route: window.location.pathname });
   }
-}
-
-export function reportLovableError(error: unknown, context: Record<string, unknown> = {}) {
-  if (typeof window === "undefined") return;
-  window.__lovableEvents?.captureException?.(
-    error,
-    {
-      source: "react_error_boundary",
-      route: window.location.pathname,
-      ...context,
-    },
-    {
-      mechanism: "react_error_boundary",
-      handled: false,
-      severity: "error",
-    },
-  );
 }

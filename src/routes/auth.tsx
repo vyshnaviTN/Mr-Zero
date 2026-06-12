@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { MrZero } from "@/components/MrZero";
 import { SpeechBubble, speak } from "@/components/SpeechBubble";
-import { supabase } from "@/integrations/supabase/client";
+import { SignIn } from "@clerk/tanstack-react-start";
+import { useAuth } from "@clerk/tanstack-react-start";
 import { useUid, pget } from "@/lib/pstore";
 
 export const Route = createFileRoute("/auth")({
@@ -21,25 +22,20 @@ const intro = ["Hello.", "I'm Mr. Zero.", "Every builder starts from zero."];
 function AuthPage() {
   const navigate = useNavigate();
   const { uid, ready } = useUid();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
-  const [name, setName] = useState("");
   const [waving, setWaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(intro[0]);
   const [speaking, setSpeaking] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
-    if (ready && uid) {
+    if (isSignedIn) {
       const hasGoals = !!pget("p0_goals");
       const hasRoadmap = !!pget("p0_roadmap");
       if (hasGoals && hasRoadmap) navigate({ to: "/dashboard" });
       else if (hasGoals) navigate({ to: "/generating" });
       else navigate({ to: "/welcome" });
     }
-  }, [ready, uid, navigate]);
+  }, [isSignedIn, navigate]);
 
   useEffect(() => {
     let i = 0;
@@ -55,38 +51,7 @@ function AuthPage() {
     return () => clearInterval(id);
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !pw || busy) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password: pw,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { name: name || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
-        if (error) throw error;
-      }
-      setWaving(true);
-      setMsg("Welcome aboard!");
-      speak("Welcome aboard!");
-    } catch (e: unknown) {
-      const m = e instanceof Error ? e.message : "Something went wrong.";
-      setErr(m);
-      setMsg("Hmm, try again?");
-      speak("Hmm, try again?");
-    } finally {
-      setBusy(false);
-    }
-  };
+
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-12">
@@ -105,86 +70,22 @@ function AuthPage() {
           transition={{ type: "spring", stiffness: 140, damping: 18 }}
           className="glass-card rounded-[2rem] p-8 sm:p-10"
         >
-          <div className="mb-6">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-              Project 0
-            </div>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">
-              {mode === "signup" ? "Create your account" : "Welcome back"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {mode === "signup"
-                ? "Mr. Zero will build your roadmap from zero."
-                : "Sign in to continue your mission."}
-            </p>
+          <div className="flex justify-center w-full">
+            <SignIn 
+              routing="hash"
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  card: "w-full shadow-none bg-transparent m-0 p-0",
+                  headerTitle: "text-2xl font-bold tracking-tight text-foreground",
+                  headerSubtitle: "text-sm text-muted-foreground",
+                  socialButtonsBlockButton: "rounded-2xl border-border bg-white/70 shadow-sm",
+                  formButtonPrimary: "rounded-2xl bg-primary shadow-lg shadow-primary/40 hover:bg-primary/90 transition-all",
+                  formFieldInput: "rounded-2xl border-border bg-white/70 px-4 py-3 text-sm focus:ring-4 focus:ring-primary/20",
+                }
+              }} 
+            />
           </div>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {mode === "signup" && (
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold text-foreground/70">Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="What should Mr. Zero call you?"
-                  className="w-full rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
-                />
-              </div>
-            )}
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground/70">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold text-foreground/70">Password</label>
-              <input
-                type="password"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                placeholder="••••••••"
-                minLength={6}
-                className="w-full rounded-2xl border border-border bg-white/70 px-5 py-3.5 text-sm outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/20"
-                required
-              />
-            </div>
-
-            {err && (
-              <div className="rounded-xl bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
-                {err}
-              </div>
-            )}
-
-            <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.97 }}
-              type="submit"
-              disabled={busy}
-              className="mt-2 rounded-2xl bg-primary px-6 py-4 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/40 transition-shadow hover:shadow-xl hover:shadow-primary/60 disabled:opacity-50"
-            >
-              {busy ? "…" : mode === "signup" ? "Create account" : "Continue"}
-            </motion.button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setErr(null);
-                setMode(mode === "signin" ? "signup" : "signin");
-              }}
-              className="text-center text-xs font-medium text-primary hover:underline"
-            >
-              {mode === "signin"
-                ? "New here? Create an account"
-                : "Already have an account? Sign in"}
-            </button>
-          </form>
         </motion.div>
       </div>
     </div>

@@ -164,6 +164,13 @@ function DashboardHome() {
               >
                 Open today's tasks →
               </Link>
+              <Link
+                to="/roadmap"
+                className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-white/60 px-5 py-3 text-sm font-semibold text-primary transition-all hover:bg-primary/10"
+              >
+                <Sparkles className="h-4 w-4" />
+                View roadmap
+              </Link>
               <button
                 onClick={() => {
                   const m = "Ask me anything — concepts, your plan, motivation.";
