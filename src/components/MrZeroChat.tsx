@@ -104,8 +104,10 @@ export function MrZeroChat() {
             className="fixed bottom-[8.5rem] md:bottom-24 right-4 md:right-6 z-40 flex h-[28rem] w-[calc(100vw-2rem)] md:w-[22rem] flex-col overflow-hidden rounded-3xl border border-border bg-white/90 shadow-2xl backdrop-blur-xl"
           >
             <div className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-4 py-3">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-primary font-bold text-primary-foreground">0</div>
-              <div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm border border-primary/20">
+                <img src="/logo.png" alt="Mr. Zero" className="h-full w-full object-cover scale-[1.2]" />
+              </div>
+              <div className="min-w-0">
                 <div className="text-sm font-bold">Mr. Zero</div>
                 <div className="text-[10px] text-muted-foreground">always here</div>
               </div>

@@ -20,10 +20,10 @@ export function Sidebar() {
     <>
       <aside className="hidden md:flex sticky top-0 h-screen w-64 shrink-0 flex-col gap-2 border-r border-border/60 bg-sidebar/70 p-5 backdrop-blur-xl z-40">
         <div className="mb-6 flex items-center gap-3 px-2">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-primary font-bold text-primary-foreground shadow-lg shadow-primary/30">
-            0
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg shadow-primary/20 border border-primary/10">
+            <img src="/logo.png" alt="Project Zero Logo" className="h-full w-full object-cover scale-[1.15]" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-lg font-bold tracking-tight">Project Zero</div>
             <div className="text-xs text-muted-foreground">with Mr. Zero</div>
           </div>
