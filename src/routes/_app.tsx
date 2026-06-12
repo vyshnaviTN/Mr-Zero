@@ -36,7 +36,7 @@ function AppLayout() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="relative flex-1 overflow-x-hidden pb-20 md:pb-0">
+      <main className="relative flex-1 overflow-x-hidden pt-16 pb-20 md:pt-0 md:pb-0">
         <Outlet />
       </main>
       <MrZeroChat />

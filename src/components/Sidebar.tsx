@@ -69,6 +69,21 @@ export function Sidebar() {
         </div>
       </aside>
 
+      {/* Mobile Top Bar */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-border/60 bg-sidebar/90 px-4 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-primary/10">
+            <img src="/logo.png" alt="Project Zero Logo" className="h-full w-full object-cover scale-[1.15]" />
+          </div>
+          <div className="text-[15px] font-bold tracking-tight">Project Zero</div>
+        </div>
+        {streak.current > 0 && (
+          <div className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary shadow-sm">
+            🔥 {streak.current}
+          </div>
+        )}
+      </header>
+
       {/* Mobile Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around bg-sidebar/90 backdrop-blur-xl border-t border-border/60 py-2 px-2 pb-4">
         {items.map((item) => {
